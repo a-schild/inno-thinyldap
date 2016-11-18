@@ -1,0 +1,82 @@
+/* Form Style */
+.uploadform{
+	width:50%;
+	table-layout:fixed;
+	margin:115px auto; 
+	background:#f8f8f8; 
+	border:1px solid #eee; 
+	padding:0;
+	height:auto;
+}
+.uplaodform_titel{
+	font:bold 21px arial; 
+	text-align:center; 
+	float:left;
+	width:100%;
+	border-bottom:1px solid #eee; 
+	padding:1em 0 10px 0;
+}
+.uploadform_content{
+	font:bold 14px arial; 
+	display: table;
+	table-layout: fixed;
+	width: 100%;
+	list-style-type: none;
+	margin-left: 0;
+	margin-right: 0;
+	padding:5px 0 5px 0;
+	border-bottom:1px solid #eee; 
+
+}
+.uploadform_left{
+	float:left;
+	width:49%;
+	margin: 0;
+}
+.uploadform_right{
+	float:right;
+	width:49%;
+	margin:0 0 0 -5px;	
+}
+.uplaodform_errordisplay{
+	font:bold 12px arial; 
+	text-align:center; 
+	padding:5px 0 10px 0;
+}
+
+/* Tabel Syle */
+.uploadedtable{
+	width:95%;
+	margin:115px auto; 
+	background:#f8f8f8; 
+	border:1px solid #eee; 
+	padding:35px 0 20px 0;
+}
+.uploadedtable_titel{
+	font:bold 21px arial; 
+	text-align:center; 
+	border-bottom:1px solid #eee; 
+	padding:5px 0 10px 0;
+}
+.uploadedtable_header{
+	font:bold 12px tahoma, arial, sans-serif; 
+	border-bottom:1px solid #eee; 
+	padding:5px 0px 5px 5px; 
+	border-right:1px solid #eee;
+}
+.uploadedtable_normal{
+	border-bottom:1px solid #eee; 
+	padding:5px; 
+	border-right:1px solid #eee;
+}
+.uploadedtable_notnormal{
+	border-bottom:1px solid #eee; 
+	padding:5px; 
+	border-right:1px solid #eee;
+	background-color:#FFBF00;
+}
+
+/* Message */
+.error_message{
+	color:#F00;
+}
