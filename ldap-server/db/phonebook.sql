@@ -24,8 +24,10 @@ CREATE TABLE IF NOT EXISTS `address` (
   `person` varchar(50) DEFAULT NULL,
   `phone` varchar(50) DEFAULT NULL,
   `mobil` varchar(50) DEFAULT NULL,
+  `speeddial_phone` varchar(50) DEFAULT NULL,
+  `speeddial_mobile` varchar(50) DEFAULT NULL,
   `email` varchar(50) DEFAULT NULL,
-  KEY `addressId` (`addressId`)
+  PRIMARY KEY `addressId` (`addressId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Daten Export vom Benutzer nicht ausgewählt
