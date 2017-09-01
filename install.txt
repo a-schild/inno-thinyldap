@@ -28,6 +28,7 @@ Prerequisites:
   chmod a+x inno-ldap
   chmod a+x inno-ldap.pl
 - Install required packages for the ldap server
+  apt-get update
   apt-get install libnet-server-perl libnet-ldap-server-perl libnet-daemon-perl libproc-daemon-perl
   apt-get install libclass-dbi-mysql-perl libxml-xpath-perl
   apt-get install libfile-cache-perl libcache-cache-perl libdatetime-perl

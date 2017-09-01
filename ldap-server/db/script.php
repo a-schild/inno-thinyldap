@@ -1,10 +1,11 @@
-<?php
+﻿<?php
 // Definierten der benötigten Dateien
 require 'PHPExcel.php';
 require_once 'PHPExcel/IOFactory.php';
 
 // Definieren der Variabel
 $servername = "127.0.0.1";
+<<<<<<< HEAD
 //$username = "<db-login-username>";
 //$password = "<db-password>;
 //$db = "phonebook_innovaphone";
@@ -13,6 +14,11 @@ $username = "intermobility";
 $password = "KXJVkE7v";
 $db = "phonebook_intermobility";
 
+=======
+$username = "<db-login-username>";
+$password = "<db-password>";
+$db = "phonebook_innovaphone";
+>>>>>>> 6223904b62282760bcb8db58dbb37a65e7c44fbb
 ?>
 <html>
 	<head>
