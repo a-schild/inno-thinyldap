@@ -15,8 +15,8 @@ There are two components at the moment:
 For installation read the install.txt document
 For update istructions read the update.txt document
 
-v1.0 Initial public version
-v1.1 Added support for speed dial numbers
+- v1.0 Initial public version
+- v1.1 Added support for speed dial numbers
 
 (C) Aarboard AG, www.aarboard.ch, 2017
 
