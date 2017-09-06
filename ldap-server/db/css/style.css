@@ -69,6 +69,12 @@
 	padding:5px; 
 	border-right:1px solid #eee;
 }
+.uploadedtable_even{
+	background-color: #cccccc;
+}
+.uploadedtable_odd{
+	background-color: #ffffff;
+}
 .uploadedtable_notnormal{
 	border-bottom:1px solid #eee; 
 	padding:5px; 
