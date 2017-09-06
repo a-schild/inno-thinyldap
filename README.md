@@ -12,8 +12,8 @@ There are two components at the moment:
 2. (optional) a MySQL database with a small PHP GUI where
     you can upload your corporate address book as excel file
 
-For installation read the install.txt document
-For update istructions read the update.txt document
+For **installation** read the **install.txt** document,
+for **update** istructions read the **update.txt** document
 
 - v1.0 Initial public version
 - v1.1 Added support for speed dial numbers

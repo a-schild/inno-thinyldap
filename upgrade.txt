@@ -1,5 +1,7 @@
 This new version adds support for speel dial functionality
 
+Upgrade from initial (1.0) to the 1.1 version:
+
 To upgrade place these new files on the LinuxPA
 
 - InnoLdapServer.pm (Don't forget to change login config)
@@ -18,7 +20,7 @@ To upgrade place these new files on the LinuxPA
 - Test the php script
   Enter http://<lapgv-ip>/apps/phonebook/script.php in a webbrowser
   Upload the testdata.xlsx file, it should show the imported addresses on the bottom of the screen
-  The new testdata.xlsx has two now fields for the speed dial of phones and mobiles
+  The new testdata.xlsx has two new fields for the speed dial of phones and mobiles
   
   
 On the PBX you have to configure the external LDAP service like this:
