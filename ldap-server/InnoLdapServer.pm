@@ -47,7 +47,7 @@ my $password = "<your db password>";
 
 my $debug = 0; # Write more logs to logfile, set to 1
 
-# ---- END CONFIGURATION SECTION ----
+# ---- END CONFIGURATION SECTION ---- 
 # Usually no need to modify things below this point
 my $database = "phonebook_innovaphone";
 my $driver = "mysql"; 
@@ -124,14 +124,15 @@ sub search
     my $self = shift;
     my $reqData = shift;
     my $base = $reqData->{'baseObject'};
-
+    my $sizeLimit = $reqData->{sizeLimit};
     my $userName= $self->{_userName};
     my $cache = new Cache::FileCache( { 'namespace' => $base,
                                         'default_expires_in' => $cacheTimeout } );
     my $isSpeedDial= $base =~ m/speeddial/;
 
     logdebug("Request data: " . Dumper($reqData));
-    logdebug("isSpeedDial: " . Dumper($isSpeedDial));
+    #logdebug("isSpeedDial: " . Dumper($isSpeedDial));
+    #logdebug("sizeLimit: " . Dumper($sizeLimit));
 
     # plain die if dn contains 'dying'
     die("panic") if $base =~ /dying/;
@@ -188,7 +189,19 @@ sub search
                                 my $qNumber= $self->parseSubstring($mySubstrings);
                                 if ($type eq 'cn')
                                 {
-                                    logwarn("Name0 search not yet implemented for $qNumber");
+                                    $searchExpression= $qNumber;
+                                    @entries= $self->lookupNames($searchExpression, $userName, $base, $sizeLimit);
+                                    if (scalar(@entries) == 0)
+                                    {
+                                        #logwarn("No match found");
+                                    }
+                                    else
+                                    {
+                                        #logwarn("answer found " . $result);
+                                        #push @entries, $result;
+                                        $entryFound= 1;
+                                        last;
+                                    }
                                 }
                                 else
                                 {
@@ -447,7 +460,7 @@ sub queryTelSearch()
 }
 
 
-sub queryMySQL()
+sub queryMySQLNumber()
 {
     my $retVal;
     my $self = shift;
@@ -599,6 +612,68 @@ sub queryMySQL()
     return $retVal;
 }
 
+sub queryMySQLNames()
+{
+    my $retVal;
+    my $self = shift;
+    my $qName= shift;
+    my $base = shift;
+    my $sizeLimit= shift;
+    my @entries;
+    
+    my $cache = new Cache::FileCache( { 'namespace' => 'telsearch-' . $base,
+                                        'default_expires_in' => 3600 } );
+    
+    logdebug("MySQL Resolve name " . $qName);
+    my $dbh = DBI->connect($dsn, $userid, $password ) or die $DBI::errstr;
+    my $searchExpression= "%".$qName."%";
+    my $sql;
+    my $sth = $dbh->prepare("SELECT addressid, person, company, phone, mobil, 
+                            speeddial_phone, speeddial_mobile, email
+                            FROM address
+                            WHERE person like ? or company like ?");
+    $sth->execute( $searchExpression, $searchExpression) or die $DBI::errstr;
+    logmsg("Number of rows found :" . $sth->rows);
+    while (my @row = $sth->fetchrow_array()) {
+       my ($addressid, $person, $company, $phone, $mobil, $speeddial_phone, $speeddial_mobile, $email) = @row;
+       logmsg("id= $addressid, Person = $person, Company = $company phone = $phone mobil= $mobil kwphone= $speeddial_phone kwmobile = $speeddial_mobile email = $email");
+
+        my $dnPart= "cn=mysql_name_".$qName;
+        my $myDN= $dnPart .",". $base;
+        my $foundEntry = Net::LDAP::Entry->new;
+        my $cn= makeDisplayName($company, $person);
+        logwarn("dn: " .$myDN );
+        logwarn("cn: " .$cn );
+        $foundEntry->dn($myDN);
+        $foundEntry->add(
+                        dn => $dnPart,
+                        sn => $cn,
+                        cn => $cn,
+                        telephoneNumber => $phone,
+                        mobileNumber => $mobil,
+                        email => $email,
+                        company => $company,
+                        person => $person
+                        );
+        push @entries, $foundEntry;
+        if (scalar(@entries) >= $sizeLimit)
+        {
+            logdebug("SearchMySQLNames requested $sizeLimit entries found");
+            last;
+        }
+    }
+    $sth->finish();
+    if (scalar(@entries) == 0)
+    {
+	logwarn("SearchMySQLNames not found: ".$qName);
+    }
+    else
+    {
+	logdebug("SearchMySQLNames found: ". Dumper(@entries));
+    }
+    return @entries;
+}
+
 sub lookupNumber()
 {
     my $self = shift;
@@ -615,7 +690,7 @@ sub lookupNumber()
     if ($useDBSearch == 1 )
 	{
 		logdebug("Query MySQL for $qNumber");
-		my $answer= $self->queryMySQL($qNumber, $base);
+		my $answer= $self->queryMySQLNumber($qNumber, $base);
 		if (not defined($answer))
 		{
 			logdebug("No answer in mySQL");
@@ -650,6 +725,28 @@ sub lookupNumber()
     return $retVal;
 }
 
+sub lookupNames()
+{
+    my $self = shift;
+    my $qName = shift;
+    my $userName= shift;
+    my $base= shift;
+    my $sizeLimit= shift;
+    
+    my $retVal;
+    my $entryFound= 0;
+    my @entries;
+    
+    logwarn("Lookup name $qName for $userName in context $base, maxAnswers <$sizeLimit>");
+    
+    if ($useDBSearch == 1 )
+	{
+            logdebug("Query MySQL for $qName");
+            @entries= $self->queryMySQLNames($qName, $base, $sizeLimit);
+	}
+
+    return @entries;
+}
 
 sub parseSubstring()
 {

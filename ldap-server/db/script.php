@@ -5,8 +5,8 @@ require_once 'PHPExcel/IOFactory.php';
 
 // Definieren der Variabel
 $servername = "127.0.0.1";
-$username = "<db-login-username>";
-$password = "<db-password>";
+$username = "inno-ldap-db";
+$password = "Kt2J07Gi04fCV4Z9e2JE";
 $db = "phonebook_innovaphone";
 ?>
 <html>
@@ -43,6 +43,11 @@ $db = "phonebook_innovaphone";
                     <div class="uploadform_right">
                         <div style="text-align:left;	vertical-align:central;	">
                             
+                        </div>
+                    </div>
+                    <div class="uploadform_right">
+                        <div style="text-align:left;	vertical-align:central;	">
+                            <a href="testdata.xlsx">Beispieldatei herunterladen</a>
                         </div>
                     </div>
                 </div>
