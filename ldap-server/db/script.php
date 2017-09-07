@@ -1,12 +1,12 @@
 ﻿<?php
-// Definierten der benötigten Dateien
+// Definierten der include Dateien
 require 'PHPExcel.php';
 require_once 'PHPExcel/IOFactory.php';
 
 // Definieren der Variabel
 $servername = "127.0.0.1";
 $username = "inno-ldap-db";
-$password = "Kt2J07Gi04fCV4Z9e2JE";
+$password = "<password>";
 $db = "phonebook_innovaphone";
 ?>
 <html>
@@ -38,6 +38,11 @@ $db = "phonebook_innovaphone";
                     <div class="uploadform_left">
                         <div style="text-align:right;	vertical-align:central;	">
  <input type="submit" name="btnInput" value="Bestehende Daten anzeigen"/>
+                        </div>
+                    </div>
+                    <div class="uploadform_left">
+                        <div style="text-align:right;	vertical-align:central;	">
+                            <a href="export.php">Daten als Excel herunterladen</a>
                         </div>
                     </div>
                     <div class="uploadform_right">

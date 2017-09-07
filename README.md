@@ -17,6 +17,7 @@ for **update** istructions read the **update.txt** document
 
 - v1.0 Initial public version
 - v1.1 Added support for speed dial numbers
+- v1.2 Added support for text search
 
 (C) Aarboard AG, www.aarboard.ch, 2017
 
