@@ -35,15 +35,15 @@ use fields qw(_userName);
 
 # ---- START CONFIGURATION SECTION ----
 my $ldapUserName= 'ldap-user-name';
-my $ldapUserPassword= 'ldap-user-password';
+my $ldapUserPassword= 'ldap-user-password'; 
 
 my $useTelSearch= 1; # Set to 0 if you not wish to use tel search
 my $useDBSearch= 1;  # set to 0 if you not with to use the internal DB
 
-my $apiKeyTelsearch = '<request your own at http://tel.search.ch/api/getkey.en.html>';
+my $apiKeyTelsearch = '<request your own at http://tel.search.ch/api/getkey.en.html>'; 
 
 my $userid = "<your db user>";
-my $password = "<your db password>";
+my $password = "<your db password>"; 
 
 my $debug = 0; # Write more logs to logfile, set to 1
 
@@ -481,34 +481,32 @@ sub queryMySQL()
     my $sql;
     if (!$isSpeedDial)
     {
-        my $sth = $dbh->prepare("SELECT addressid, person, company
+        my $sth = $dbh->prepare("SELECT addressid, person, company, phone, mobil, 
+                                speeddial_phone, speeddial_mobile, email
                                 FROM address
-                                WHERE phone = ? or mobil=? ");
-        $sth->execute( $qNumber, $qNumber ) or die $DBI::errstr;
+                                WHERE phone = ? or mobil=? or speeddial_phone=? or speeddial_mobile=?");
+        $sth->execute( $qNumber, $qNumber, $qNumber, $qNumber ) or die $DBI::errstr;
         logmsg("Number of rows found :" . $sth->rows);
         while (my @row = $sth->fetchrow_array()) {
-           my ($addressid, $person, $company) = @row;
-           logmsg("id= $addressid, Person = $person, Company = $company");
+           my ($addressid, $person, $company, $phone, $mobil, $speeddial_phone, $speeddial_mobile, $email) = @row;
+           logmsg("id= $addressid, Person = $person, Company = $company phone = $phone mobil= $mobil kwphone= $speeddial_phone kwmobile = $speeddial_mobile email = $email");
 
-            my $dnPart= "cn=mysql_".$addressid;
+           my $finalNr= $qNumber;
+           my $prefix= "";
+           if ($speeddial_phone == $qNumber)
+           {
+               $finalNr= $phone;
+               $prefix= "KW T:";
+           }
+           if ($speeddial_mobile == $qNumber)
+           {
+               $finalNr= $mobil;
+               $prefix= "KW M:";
+           }
+            my $dnPart= "cn=mysql_".$addressid.$finalNr;
             my $myDN= $dnPart .",". $base;
             my $foundEntry = Net::LDAP::Entry->new;
-            my $cn= "";
-            if (defined($person) && length $person > 0)
-            {
-                    $cn= $person;
-            }
-            if (defined($company) && length $company > 0)
-            {
-                if (length $cn > 0)
-                {
-                    $cn= $cn . ', ' . $company;
-                }
-                else
-                {
-                    $cn= $company;
-                }
-            }
+            my $cn= $prefix . makeDisplayName($company, $person);
             logwarn("dn: " .$myDN );
             logwarn("cn: " .$cn );
             $foundEntry->dn($myDN);
@@ -516,7 +514,10 @@ sub queryMySQL()
                             dn => $dnPart,
                             sn => $cn,
                             cn => $cn,
-                            telephoneNumber => $qNumber
+                            telephoneNumber => $finalNr,
+                            email => $email,
+                            company => $company,
+                            person => $person
                             );
             $retVal= $foundEntry;
         }
@@ -525,7 +526,7 @@ sub queryMySQL()
     else
     {
         # Query speeddial
-        my $sth1 = $dbh->prepare("SELECT addressid, phone, company, person
+        my $sth1 = $dbh->prepare("SELECT addressid, phone, company, person, email
                                 FROM address
                                 WHERE speeddial_phone = ?");
         $sth1->execute( $qNumber ) or die $DBI::errstr;
@@ -533,7 +534,7 @@ sub queryMySQL()
         if ($sth1->rows > 0)
         {
             while (my @row = $sth1->fetchrow_array()) {
-               my ($addressid, $phone, $company, $person) = @row;
+               my ($addressid, $phone, $company, $person, $email) = @row;
                logmsg("id= $addressid, phone = $phone");
 
                 my $dnPart= "cn=mysql_sdp".$addressid;
@@ -544,14 +545,17 @@ sub queryMySQL()
                 $foundEntry->add(
                                 dn => $dnPart,
                                 telephoneNumber => $phone,
-                                cn => $company . '/' . $person
+                                cn => makeDisplayName($company, $person),
+                                email => $email,
+                                company => $company,
+                                person => $person
                                 );
                 $retVal= $foundEntry;
             }
         } 
         else
         {
-            my $sth2 = $dbh->prepare("SELECT addressid, mobil, company, person
+            my $sth2 = $dbh->prepare("SELECT addressid, mobil, company, person, email
                                     FROM address
                                     WHERE speeddial_mobile = ?");
             $sth2->execute( $qNumber ) or die $DBI::errstr;
@@ -559,7 +563,7 @@ sub queryMySQL()
             if ($sth2->rows > 0)
             {
                 while (my @row = $sth2->fetchrow_array()) {
-                   my ($addressid, $mobil, $company, $person) = @row;
+                   my ($addressid, $mobil, $company, $person, $email) = @row;
                    logmsg("id= $addressid, mobil = $mobil");
 
                     my $dnPart= "cn=mysql_sdp".$addressid;
@@ -570,7 +574,10 @@ sub queryMySQL()
                     $foundEntry->add(
                                     dn => $dnPart,
                                     telephoneNumber => $mobil,
-                                    cn => $company . '/' . $person
+                                    cn => makeDisplayName($company, $person),
+                                    email => $email,
+                                    company => $company,
+                                    person => $person
                                     );
                     $retVal= $foundEntry;
                 }
@@ -663,6 +670,31 @@ sub parseSubstring()
     # logwarn("Returning $retVal for " . Dumper($substringQuery));
     return $retVal;
 }
+
+sub makeDisplayName()
+{
+    my $self = shift;
+    my $company = shift;
+    my $person = shift;
+    my $cn= "";
+    if (defined($person) && length $person > 0)
+    {
+            $cn= $person;
+    }
+    if (defined($company) && length $company > 0)
+    {
+        if (length $cn > 0)
+        {
+            $cn= $cn . ', ' . $company;
+        }
+        else
+        {
+            $cn= $company;
+        }
+    }
+    return $cn;
+}
+
 
 sub logmsg {
   print STDERR (scalar localtime() . " @_\n");
