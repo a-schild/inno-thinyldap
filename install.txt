@@ -53,6 +53,8 @@ Prerequisites:
   chown www-data:www-data /var/www/innovaphone/apps/phonebook -R
 - Install php5 mysql libraries
   apt-get install php5-mysql  php-http
+- Restart webserver to use new php libraries
+  service lighttpd restart
   
 - Test the php script
   Enter http://<lapgv-ip>/apps/phonebook/script.php in a webbrowser
@@ -69,3 +71,10 @@ Name Attributes cn
 Number Attributes telephoneNumber
 Detail Attributes cn
 
+You can also use the quick dial functionality
+For this upload the excel with the speeddial entries filled in
+configure the quickdial object in your pbx with these values:
+- Search base dc=speeddial,dc=company,dc=ch (It must start with dc=speeddial)
+Name Attributes cn
+Number Attributes telephoneNumber
+Detail Attributes cn

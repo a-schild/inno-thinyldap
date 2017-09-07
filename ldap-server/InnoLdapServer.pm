@@ -45,7 +45,7 @@ my $apiKeyTelsearch = '<request your own at http://tel.search.ch/api/getkey.en.h
 my $userid = "<your db user>";
 my $password = "<your db password>";
 
-my $debug = 0; # Write more logs to logfile
+my $debug = 0; # Write more logs to logfile, set to 1
 
 # ---- END CONFIGURATION SECTION ----
 # Usually no need to modify things below this point
@@ -128,7 +128,11 @@ sub search
     my $userName= $self->{_userName};
     my $cache = new Cache::FileCache( { 'namespace' => $base,
                                         'default_expires_in' => $cacheTimeout } );
-    
+    my $isSpeedDial= $base =~ m/speeddial/;
+
+    logdebug("Request data: " . Dumper($reqData));
+    logdebug("isSpeedDial: " . Dumper($isSpeedDial));
+
     # plain die if dn contains 'dying'
     die("panic") if $base =~ /dying/;
     
@@ -145,80 +149,83 @@ sub search
 	# onelevel or subtree
 	my $myFilter= $reqData->{'filter'};
 	logdebug("Full filter definition: " . Dumper($myFilter));
-	for my $and(@{$myFilter->{'and'}}) 
+        if (!$isSpeedDial)
         {
-	    for my $or (@{$and->{'or'}}) 
-	    {
-                for my $myORCondition ($or) 
+            for my $and(@{$myFilter->{'and'}}) 
+            {
+                for my $or (@{$and->{'or'}}) 
                 {
-                    logdebug("Found or condition: " . Dumper($myORCondition));
-                    my $mySubstrings= $myORCondition->{'substrings'};
-                    my $myEquality= $myORCondition->{'equalityMatch'};
-                    
-                    if (defined($myEquality))
+                    for my $myORCondition ($or) 
                     {
-                        if ($myEquality->{'attributeDesc'} eq "telephoneNumber" )
+                        logdebug("Found or condition: " . Dumper($myORCondition));
+                        my $mySubstrings= $myORCondition->{'substrings'};
+                        my $myEquality= $myORCondition->{'equalityMatch'};
+
+                        if (defined($myEquality))
                         {
-			    my $qNumber= $myEquality->{'assertionValue'};
-			    $searchExpression= $qNumber;
-			    my $result= $self->lookupNumber($qNumber, $userName, $base);
-			    if (not defined($result))
-			    {
-				#logwarn("No match found");
-			    }
-			    else
-			    {
-				#logwarn("answer found " . $result);
-				push @entries, $result;
-				$entryFound= 1;
-				last;
-			    }
+                            if ($myEquality->{'attributeDesc'} eq "telephoneNumber" )
+                            {
+                                my $qNumber= $myEquality->{'assertionValue'};
+                                $searchExpression= $qNumber;
+                                my $result= $self->lookupNumber($qNumber, $userName, $base);
+                                if (not defined($result))
+                                {
+                                    #logwarn("No match found");
+                                }
+                                else
+                                {
+                                    #logwarn("answer found " . $result);
+                                    push @entries, $result;
+                                    $entryFound= 1;
+                                    last;
+                                }
+                            }
+                        }
+                        elsif (defined($mySubstrings))
+                        {
+                                my $mySubstrings= $mySubstrings;
+                                my $type= $mySubstrings->{'type'};
+                                my $qNumber= $self->parseSubstring($mySubstrings);
+                                if ($type eq 'cn')
+                                {
+                                    logwarn("Name0 search not yet implemented for $qNumber");
+                                }
+                                else
+                                {
+                                    $searchExpression= $qNumber;
+                                    my $result= $self->lookupNumber($qNumber, $userName, $base);
+                                    if (not defined($result))
+                                    {
+                                        #logwarn("No match found");
+                                    }
+                                    else
+                                    {
+                                        #logwarn("answer found " . $result);
+                                        push @entries, $result;
+                                        $entryFound= 1;
+                                        last;
+                                    }
+                                }
+                        }
+                        else
+                        {
+                            logwarn("Unhandled OR condition Part1 : " . Dumper($myORCondition) );
                         }
                     }
-                    elsif (defined($mySubstrings))
+                    if ( $entryFound >= 1)
                     {
-			    my $mySubstrings= $mySubstrings;
-			    my $type= $mySubstrings->{'type'};
-			    my $qNumber= $self->parseSubstring($mySubstrings);
-			    if ($type eq 'cn')
-			    {
-				logwarn("Name0 search not yet implemented for $qNumber");
-			    }
-			    else
-			    {
-				$searchExpression= $qNumber;
-				my $result= $self->lookupNumber($qNumber, $userName, $base);
-				if (not defined($result))
-				{
-				    #logwarn("No match found");
-				}
-				else
-				{
-				    #logwarn("answer found " . $result);
-				    push @entries, $result;
-				    $entryFound= 1;
-				    last;
-				}
-			    }
-                    }
-                    else
-                    {
-			logwarn("Unhandled OR condition Part1 : " . Dumper($myORCondition) );
+                        last;
                     }
                 }
-		if ( $entryFound >= 1)
-		{
-		    last;
-		}
-	    }
-	    if ( $entryFound >= 1)
-	    {
-	        last;
-	    }
+                if ( $entryFound >= 1)
+                {
+                    last;
+                }
+            }
         }
         
 	# Use another search round
-        if ($entryFound == 0)
+        if ($entryFound == 0 && !$isSpeedDial)
         {
 	    logdebug("2Nothing found, using second search method or->or ");
 	    logdebug("2Full filter definition: " . Dumper($myFilter));
@@ -287,6 +294,34 @@ sub search
 		}
 	    }
 	}
+        
+	# Use another search round
+        if ($isSpeedDial)
+        {
+            my $myEquality= $myFilter->{'equalityMatch'};
+	    logdebug("searching speedDial for " . Dumper($myEquality));
+
+            if (defined($myEquality))
+            {
+                if ($myEquality->{'attributeDesc'} eq "cn" )
+                {
+                    my $qNumber= $myEquality->{'assertionValue'};
+                    $searchExpression= $qNumber;
+                    my $result= $self->lookupNumber($qNumber, $userName, $base);
+                    if (not defined($result))
+                    {
+                        #logwarn("No match found");
+                    }
+                    else
+                    {
+                        logdebug("answer found " . $result);
+                        push @entries, $result;
+                        $entryFound= 1;
+                    }
+                }
+            }
+        }
+        
 	if ($entryFound >= 1)
 	{
 	    if (defined($searchExpression))
@@ -331,7 +366,11 @@ sub queryTelSearch()
     my $base = shift;
     my $cache = new Cache::FileCache( { 'namespace' => 'telsearch-' . $base,
                                         'default_expires_in' => 3600 } );
-
+    my $isSpeedDial= $base =~ m/speeddial/;
+    if ($isSpeedDial)
+    {
+        return;
+    }
     logdebug("Telsearch Resolve NR " . $qNumber);
     my $response= $cache->get( $qNumber );
     if (not defined ($response))
@@ -417,7 +456,9 @@ sub queryMySQL()
     my $base = shift;
     my $cache = new Cache::FileCache( { 'namespace' => 'telsearch-' . $base,
                                         'default_expires_in' => 3600 } );
-
+    my $isSpeedDial= $base =~ m/speeddial/;
+    logmsg("base= $base, isSpeedDial= $isSpeedDial");
+    
     if (index($qNumber, '+') == 0)
     {
         # $qNumber= substr($qNumber, 1);
@@ -437,51 +478,115 @@ sub queryMySQL()
     logdebug("MySQL Resolve NR " . $qNumber);
     my $dbh = DBI->connect($dsn, $userid, $password ) or die $DBI::errstr;
     
-    my $sth = $dbh->prepare("SELECT addressid, person, company
-			    FROM address
-			    WHERE phone = ? or mobil=? ");
-    $sth->execute( $qNumber, $qNumber ) or die $DBI::errstr;
-    logmsg("Number of rows found :" . $sth->rows);
-    while (my @row = $sth->fetchrow_array()) {
-       my ($addressid, $person, $company) = @row;
-       logmsg("id= $addressid, Person = $person, Company = $company");
+    my $sql;
+    if (!$isSpeedDial)
+    {
+        my $sth = $dbh->prepare("SELECT addressid, person, company
+                                FROM address
+                                WHERE phone = ? or mobil=? ");
+        $sth->execute( $qNumber, $qNumber ) or die $DBI::errstr;
+        logmsg("Number of rows found :" . $sth->rows);
+        while (my @row = $sth->fetchrow_array()) {
+           my ($addressid, $person, $company) = @row;
+           logmsg("id= $addressid, Person = $person, Company = $company");
 
-	my $dnPart= "cn=mysql_".$addressid;
-	my $myDN= $dnPart .",". $base;
-	my $foundEntry = Net::LDAP::Entry->new;
-	my $cn= "";
-	if (defined($person) && length $person > 0)
-	{
-		$cn= $person;
-	}
-	if (defined($company) && length $company > 0)
-	{
-	    if (length $cn > 0)
-	    {
-		$cn= $cn . ', ' . $company;
-	    }
-	    else
-	    {
-		$cn= $company;
-	    }
-	}
-	logwarn("dn: " .$myDN );
-	logwarn("cn: " .$cn );
-	$foundEntry->dn($myDN);
-	$foundEntry->add(
-			dn => $dnPart,
-			sn => $cn,
-			cn => $cn,
-			telephoneNumber => $qNumber
-			);
-	$retVal= $foundEntry;
-
+            my $dnPart= "cn=mysql_".$addressid;
+            my $myDN= $dnPart .",". $base;
+            my $foundEntry = Net::LDAP::Entry->new;
+            my $cn= "";
+            if (defined($person) && length $person > 0)
+            {
+                    $cn= $person;
+            }
+            if (defined($company) && length $company > 0)
+            {
+                if (length $cn > 0)
+                {
+                    $cn= $cn . ', ' . $company;
+                }
+                else
+                {
+                    $cn= $company;
+                }
+            }
+            logwarn("dn: " .$myDN );
+            logwarn("cn: " .$cn );
+            $foundEntry->dn($myDN);
+            $foundEntry->add(
+                            dn => $dnPart,
+                            sn => $cn,
+                            cn => $cn,
+                            telephoneNumber => $qNumber
+                            );
+            $retVal= $foundEntry;
+        }
+        $sth->finish();
     }
-    $sth->finish();
+    else
+    {
+        # Query speeddial
+        my $sth1 = $dbh->prepare("SELECT addressid, phone, company, person
+                                FROM address
+                                WHERE speeddial_phone = ?");
+        $sth1->execute( $qNumber ) or die $DBI::errstr;
+        logmsg("Number of rows found :" . $sth1->rows);
+        if ($sth1->rows > 0)
+        {
+            while (my @row = $sth1->fetchrow_array()) {
+               my ($addressid, $phone, $company, $person) = @row;
+               logmsg("id= $addressid, phone = $phone");
+
+                my $dnPart= "cn=mysql_sdp".$addressid;
+                my $myDN= $dnPart .",". $base;
+                my $foundEntry = Net::LDAP::Entry->new;
+                logwarn("dn: " .$myDN );
+                $foundEntry->dn($myDN);
+                $foundEntry->add(
+                                dn => $dnPart,
+                                telephoneNumber => $phone,
+                                cn => $company . '/' . $person
+                                );
+                $retVal= $foundEntry;
+            }
+        } 
+        else
+        {
+            my $sth2 = $dbh->prepare("SELECT addressid, mobil, company, person
+                                    FROM address
+                                    WHERE speeddial_mobile = ?");
+            $sth2->execute( $qNumber ) or die $DBI::errstr;
+            logmsg("Number of rows found :" . $sth2->rows);
+            if ($sth2->rows > 0)
+            {
+                while (my @row = $sth2->fetchrow_array()) {
+                   my ($addressid, $mobil, $company, $person) = @row;
+                   logmsg("id= $addressid, mobil = $mobil");
+
+                    my $dnPart= "cn=mysql_sdp".$addressid;
+                    my $myDN= $dnPart .",". $base;
+                    my $foundEntry = Net::LDAP::Entry->new;
+                    logwarn("dn: " .$myDN );
+                    $foundEntry->dn($myDN);
+                    $foundEntry->add(
+                                    dn => $dnPart,
+                                    telephoneNumber => $mobil,
+                                    cn => $company . '/' . $person
+                                    );
+                    $retVal= $foundEntry;
+                }
+            }
+            $sth2->finish();
+        }
+        $sth1->finish();
+    }
     
     if (not defined($retVal))
     {
 	logwarn("SearchMySQL not found: ".$qNumber);
+    }
+    else
+    {
+	logdebug("SearchMySQL found: ".$retVal);
     }
     
     return $retVal;
@@ -493,6 +598,7 @@ sub lookupNumber()
     my $qNumber = shift;
     my $userName= shift;
     my $base= shift;
+    my $isSpeedDial= $base =~ m/speeddial/;
     
     my $retVal;
     my $entryFound= 0;
@@ -515,7 +621,7 @@ sub lookupNumber()
 		}
 	}
 
-    if ($useTelSearch == 1 )
+    if ($useTelSearch == 1 && !$isSpeedDial)
 	{
 		if ($entryFound == 0 && index($qNumber, '+41') == 0 && length $qNumber > 10 && length $qNumber < 14 )
 		{
