@@ -34,16 +34,16 @@ use Hash::Util qw(lock_keys unlock_keys unlock_value lock_value);
 use fields qw(_userName);
 
 # ---- START CONFIGURATION SECTION ----
-my $ldapUserName= 'ldap-user-name';
-my $ldapUserPassword= 'ldap-user-password'; 
+my $ldapUserName= 'inno-ldap-digi';
+my $ldapUserPassword= '<password>'; 
 
 my $useTelSearch= 1; # Set to 0 if you not wish to use tel search
 my $useDBSearch= 1;  # set to 0 if you not with to use the internal DB
 
 my $apiKeyTelsearch = '<request your own at http://tel.search.ch/api/getkey.en.html>'; 
 
-my $userid = "<your db user>";
-my $password = "<your db password>"; 
+my $userid = "inno-ldap-db";
+my $password = "<password>"; 
 
 my $debug = 0; # Write more logs to logfile, set to 1
 
@@ -378,7 +378,7 @@ sub queryTelSearch()
     my $originalSearchNR= $qNumber;
     my $base = shift;
     my $cache = new Cache::FileCache( { 'namespace' => 'telsearch-' . $base,
-                                        'default_expires_in' => 3600 } );
+                                        'default_expires_in' => $cacheTimeout } );
     my $isSpeedDial= $base =~ m/speeddial/;
     if ($isSpeedDial)
     {
@@ -389,7 +389,6 @@ sub queryTelSearch()
     if (not defined ($response))
     {
         my $fullURL= $resolvURLTelsearch . $qNumber . '&key=' . $apiKeyTelsearch;
-	#my $fullURL= $resolvURLTelsearch . "0323310905";
         logwarn("Query tel.search for: ".$fullURL);
 	$response = get $fullURL;
         logwarn("Storing TelSearch answer in cache: ".$response);
@@ -433,7 +432,7 @@ sub queryTelSearch()
 	    my $myDN= $dnPart.",". $base;
 	    my $foundEntry = Net::LDAP::Entry->new;
 	    my $cn= trim($name . ' ' . $firstname) . ', ' . $zip . ' ' .$city;
-	    if (defined($canton) && length $canton > 0)
+	    if (defined($canton) && length($canton) > 0)
 	    {
 		    $cn= $cn . '/' . $canton;
 	    }
@@ -468,7 +467,7 @@ sub queryMySQLNumber()
     my $originalSearchNR= $qNumber;
     my $base = shift;
     my $cache = new Cache::FileCache( { 'namespace' => 'telsearch-' . $base,
-                                        'default_expires_in' => 3600 } );
+                                        'default_expires_in' => $cacheTimeout } );
     my $isSpeedDial= $base =~ m/speeddial/;
     logmsg("base= $base, isSpeedDial= $isSpeedDial");
     
@@ -502,16 +501,16 @@ sub queryMySQLNumber()
         logmsg("Number of rows found :" . $sth->rows);
         while (my @row = $sth->fetchrow_array()) {
            my ($addressid, $person, $company, $phone, $mobil, $speeddial_phone, $speeddial_mobile, $email) = @row;
-           logmsg("id= $addressid, Person = $person, Company = $company phone = $phone mobil= $mobil kwphone= $speeddial_phone kwmobile = $speeddial_mobile email = $email");
+           #logdebug("id= $addressid, Person = $person, Company = $company phone = $phone mobil= $mobil kwphone= $speeddial_phone kwmobile = $speeddial_mobile email = $email");
 
            my $finalNr= $qNumber;
            my $prefix= "";
-           if ($speeddial_phone == $qNumber)
+           if (defined($speeddial_phone) && $speeddial_phone == $qNumber)
            {
                $finalNr= $phone;
                $prefix= "KW T:";
            }
-           if ($speeddial_mobile == $qNumber)
+           if (defined($speeddial_mobile) && $speeddial_mobile == $qNumber)
            {
                $finalNr= $mobil;
                $prefix= "KW M:";
@@ -519,19 +518,14 @@ sub queryMySQLNumber()
             my $dnPart= "cn=mysql_".$addressid.$finalNr;
             my $myDN= $dnPart .",". $base;
             my $foundEntry = Net::LDAP::Entry->new;
-            my $cn= $prefix . makeDisplayName($company, $person);
+            my $cn= $prefix . $self->makeDisplayName($company, $person);
             logwarn("dn: " .$myDN );
             logwarn("cn: " .$cn );
             $foundEntry->dn($myDN);
             $foundEntry->add(
                             dn => $dnPart,
-                            sn => $cn,
-                            cn => $cn,
-                            telephoneNumber => $finalNr,
-                            email => $email,
-                            company => $company,
-                            person => $person
-                            );
+                            cn => $cn);
+	    $self->addResultProperties($foundEntry, $finalNr, $mobil, $email, $company, $person);
             $retVal= $foundEntry;
         }
         $sth->finish();
@@ -548,7 +542,7 @@ sub queryMySQLNumber()
         {
             while (my @row = $sth1->fetchrow_array()) {
                my ($addressid, $phone, $company, $person, $email) = @row;
-               logmsg("id= $addressid, phone = $phone");
+               #logdebug("Searchresult SpeeddialPhone: id= $addressid, phone= $phone company= $company person= $person email= $email");
 
                 my $dnPart= "cn=mysql_sdp".$addressid;
                 my $myDN= $dnPart .",". $base;
@@ -556,13 +550,10 @@ sub queryMySQLNumber()
                 logwarn("dn: " .$myDN );
                 $foundEntry->dn($myDN);
                 $foundEntry->add(
-                                dn => $dnPart,
-                                telephoneNumber => $phone,
-                                cn => makeDisplayName($company, $person),
-                                email => $email,
-                                company => $company,
-                                person => $person
+#                                dn => $dnPart,
+                                cn => $self->makeDisplayName($company, $person),
                                 );
+		$self->addResultProperties($foundEntry, $phone, , $email, $company, $person);
                 $retVal= $foundEntry;
             }
         } 
@@ -577,7 +568,7 @@ sub queryMySQLNumber()
             {
                 while (my @row = $sth2->fetchrow_array()) {
                    my ($addressid, $mobil, $company, $person, $email) = @row;
-                   logmsg("id= $addressid, mobil = $mobil");
+                   #logdebug("Searchresult SpeeddialMobil: id= $addressid, mobil= $mobil company= $company person= $person email= $email");
 
                     my $dnPart= "cn=mysql_sdp".$addressid;
                     my $myDN= $dnPart .",". $base;
@@ -585,13 +576,10 @@ sub queryMySQLNumber()
                     logwarn("dn: " .$myDN );
                     $foundEntry->dn($myDN);
                     $foundEntry->add(
-                                    dn => $dnPart,
-                                    telephoneNumber => $mobil,
-                                    cn => makeDisplayName($company, $person),
-                                    email => $email,
-                                    company => $company,
-                                    person => $person
-                                    );
+#                                    dn => $dnPart,
+                                    cn => $self->makeDisplayName($company, $person)
+				    );
+		    $self->addResultProperties($foundEntry, $mobil, , $email, $company, $person);
                     $retVal= $foundEntry;
                 }
             }
@@ -622,7 +610,7 @@ sub queryMySQLNames()
     my @entries;
     
     my $cache = new Cache::FileCache( { 'namespace' => 'telsearch-' . $base,
-                                        'default_expires_in' => 3600 } );
+                                        'default_expires_in' => $cacheTimeout } );
     
     logdebug("MySQL Resolve name " . $qName);
     my $dbh = DBI->connect($dsn, $userid, $password ) or die $DBI::errstr;
@@ -636,25 +624,19 @@ sub queryMySQLNames()
     logmsg("Number of rows found :" . $sth->rows);
     while (my @row = $sth->fetchrow_array()) {
        my ($addressid, $person, $company, $phone, $mobil, $speeddial_phone, $speeddial_mobile, $email) = @row;
-       logmsg("id= $addressid, Person = $person, Company = $company phone = $phone mobil= $mobil kwphone= $speeddial_phone kwmobile = $speeddial_mobile email = $email");
+       #logdebug("Searchresult by name: id= $addressid, person= $person, company= $company phone= $phone mobil= $mobil kwphone= $speeddial_phone kwmobile= $speeddial_mobile email= $email");
 
         my $dnPart= "cn=mysql_name_".$qName;
         my $myDN= $dnPart .",". $base;
         my $foundEntry = Net::LDAP::Entry->new;
-        my $cn= makeDisplayName($company, $person);
-        logwarn("dn: " .$myDN );
-        logwarn("cn: " .$cn );
+        my $cn= $self->makeDisplayName( $company , $person);
+        logdebug("dn: " .$myDN );
+        logdebug("cn: " .$cn );
         $foundEntry->dn($myDN);
         $foundEntry->add(
                         dn => $dnPart,
-                        sn => $cn,
-                        cn => $cn,
-                        telephoneNumber => $phone,
-                        mobileNumber => $mobil,
-                        email => $email,
-                        company => $company,
-                        person => $person
-                        );
+                        cn => $cn);
+	$self->addResultProperties($foundEntry, $phone, $mobil, $email, $company, $person);
         push @entries, $foundEntry;
         if (scalar(@entries) >= $sizeLimit)
         {
@@ -705,7 +687,7 @@ sub lookupNumber()
 
     if ($useTelSearch == 1 && !$isSpeedDial)
 	{
-		if ($entryFound == 0 && index($qNumber, '+41') == 0 && length $qNumber > 10 && length $qNumber < 14 )
+		if ($entryFound == 0 && index($qNumber, '+41') == 0 && length($qNumber) > 10 && length($qNumber) < 14 )
 		{
 			logdebug("Query tel.search for $qNumber");
 			my $answer= $self->queryTelSearch($qNumber, $base);
@@ -773,14 +755,15 @@ sub makeDisplayName()
     my $self = shift;
     my $company = shift;
     my $person = shift;
+
     my $cn= "";
-    if (defined($person) && length $person > 0)
+    if (defined($person) && length($person) > 0)
     {
             $cn= $person;
     }
-    if (defined($company) && length $company > 0)
+    if (defined($company) && length($company) > 0)
     {
-        if (length $cn > 0)
+        if (length($cn) > 0)
         {
             $cn= $cn . ', ' . $company;
         }
@@ -789,9 +772,23 @@ sub makeDisplayName()
             $cn= $company;
         }
     }
+    if (length($cn) == 0)
+    {
+	$cn= "Error, no name found";
+	logerr("Company and Name all undefined or empty");
+    }
     return $cn;
 }
 
+sub addResultProperties()
+{
+    my ($self, $foundEntry, $phone, $mobil, $email, $company, $person) = @_;
+    if (defined($phone)) { $foundEntry->add(telephoneNumber => $phone); }
+    if (defined($mobil)) { $foundEntry->add(mobileNumber => $mobil); }
+    if (defined($email)) { $foundEntry->add(mail => $email); }
+    if (defined($company)) { $foundEntry->add(company => $company); }
+    if (defined($person)) { $foundEntry->add(person => $person); }
+}
 
 sub logmsg {
   print STDERR (scalar localtime() . " @_\n");

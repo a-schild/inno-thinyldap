@@ -38,13 +38,15 @@ Prerequisites:
   update-rc.d  inno-ldap defaults
 - Make log directory
   mkdir /var/log/innoldap
+- Start the service
+  services start inno-ldap
   
 - Install the MySQL Database
   apt-get install mysql-server
 - Create mySQL database and user with password
   mysql -u root
-  CREATE USER 'test'@'localhost' IDENTIFIED BY 'test';
-  GRANT ALL ON phonebook_innovaphone.* TO 'test'@'localhost';
+  CREATE USER 'inno-ldap-db'@'localhost' IDENTIFIED BY 'test';
+  GRANT ALL ON phonebook_innovaphone.* TO 'inno-ldap-db'@'localhost';
   FLUSH PRIVILEGES;
   source /var/www/innovaphone/apps/phonebook/phonebook.sql
   exit
@@ -68,8 +70,8 @@ On the PBX you have to configure the external LDAP service like this:
 - Search base dc=company,dc=ch
 - Mode basic
 Name Attributes cn
-Number Attributes telephoneNumber
-Detail Attributes cn
+Number Attributes telephoneNumber,mobileNumber
+Detail Attributes cn,mail,company,person,mail
 
 You can also use the quick dial functionality
 For this upload the excel with the speeddial entries filled in
