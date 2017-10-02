@@ -85,7 +85,11 @@ select((select(STDERR), $|=1)[0]); # make the log file "hot" - turn off bufferin
 while ($continue) {
 	# package main;
 	$roothandler= Listener->run(
-		port => 389,
+		port => [ 636, "389/tcp" ],
+		proto => "ssl",       # use ssl as the default
+        ipv  => "*",          # bind both IPv4 and IPv6 interfaces
+        SSL_key_file  => "/home/root/ssl_cert/server.pem",
+        SSL_cert_file => "/home/root/ssl_cert/server.pem",
 		log_level => 4
 		);
 }

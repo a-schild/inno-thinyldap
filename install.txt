@@ -65,7 +65,7 @@ Prerequisites:
   
 On the PBX you have to configure the external LDAP service like this:
 - IP of your LinuxAP
-- Port 389 (Sorry, no TLS yet)
+- Port 636 with TLS (Or 389 without encryption)
 - Username & Password
 - Search base dc=company,dc=ch
 - Mode basic

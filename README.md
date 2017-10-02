@@ -19,6 +19,7 @@ for **update** istructions read the **update.txt** document
 - v1.1 Added support for speed dial numbers
 - v1.2 Added support for text search
 - v1.3 Added support to correctly shutdown ldap daemon
+- v1.4 Added support for LDAPS
 
 (C) Aarboard AG, www.aarboard.ch, 2017
 
