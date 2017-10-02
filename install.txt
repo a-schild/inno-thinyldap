@@ -39,7 +39,7 @@ Prerequisites:
 - Make log directory
   mkdir /var/log/innoldap
 - Start the service
-  services start inno-ldap
+  services inno-ldap start
   
 - Install the MySQL Database
   apt-get install mysql-server
