@@ -30,7 +30,7 @@ Prerequisites:
 - Install required packages for the ldap server
   apt-get update
   apt-get install libnet-server-perl libnet-ldap-server-perl libnet-daemon-perl libproc-daemon-perl
-  apt-get install libclass-dbi-mysql-perl libxml-xpath-perl
+  apt-get install libclass-dbi-mysql-perl libxml-xpath-perl libfile-pid-perl
   apt-get install libfile-cache-perl libcache-cache-perl libdatetime-perl
 - Link start script to /etc/init.d
   ln -s -t /etc/init.d /var/local/aarldap/inno-ldap
@@ -39,7 +39,7 @@ Prerequisites:
 - Make log directory
   mkdir /var/log/innoldap
 - Start the service
-  services inno-ldap start
+  service inno-ldap start
   
 - Install the MySQL Database
   apt-get install mysql-server

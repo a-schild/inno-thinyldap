@@ -12,13 +12,16 @@ use lib '/var/local/aarldap';
 use InnoLdapServer;
 use Data::Dumper;
 use DateTime;
+use File::Pid;
 #use Scalar::Util qw/openhandle/;
 
 my $debug = 0;
 my $logpath= "/var/log/innoldap";
 my $dt = DateTime->now;
 my $logName= $dt->ymd . '_' . $dt->hms('-');
-
+my $handler= 0;
+my $continue = 1;
+my $roothandler= 0;
 
 sub process_request {
 	my $self = shift;
@@ -31,31 +34,12 @@ sub process_request {
     my $peer_port = $sock->peerport();
     logwarn("Connection accepted from $peer_address : $peer_port");    
 
-    #print STDERR 'in = ('.openhandle($in).') '.Dumper($in);
-    #print STDERR 'out = ('.openhandle($out).') '.Dumper($out);
 	my $handler = InnoLdapServer->new($sock);
-	#my $handler = InnoLdapServer->new($in,$out);
 	while (1) 
-        {
-            my $finished = $handler->handle;
-            return if $finished;
+    {
+        my $finished = $handler->handle;
+        return if $finished;
 	}
-}
-
-
-Proc::Daemon::Init;
-
-my $continue = 1;
-$SIG{TERM} = sub { $continue = 0 };
-
-open(STDOUT, '>', "$logpath/inno-ldap.$logName.log") or die "Can't open stdout log";
-open(STDERR, '>', "$logpath/inno-ldap.$logName.error.log") or die "Can't open error log";
-
-while ($continue) {
-package main;
-
-
-Listener->run(port => 389);
 }
 
 
@@ -76,5 +60,36 @@ sub logdebug {
     print "DEBUG: @_\n";
   }
 }
+
+sub server_close {
+	logmsg("Server close called");
+	$continue= 0;
+}
+
+# Start daemon
+Proc::Daemon::Init();
+
+my $pidfile = File::Pid->new({file => "/var/run/inno-ldap.pid"});
+if ($pidfile->running())
+{
+	die "Already running";
+}
+
+$pidfile->write();
+
+open(STDOUT, '>', "$logpath/inno-ldap.$logName.log") or die "Can't open stdout log";
+select((select(STDOUT), $|=1)[0]); # make the log file "hot" - turn off buffering
+open(STDERR, '>', "$logpath/inno-ldap.$logName.error.log") or die "Can't open error log";
+select((select(STDERR), $|=1)[0]); # make the log file "hot" - turn off buffering
+
+while ($continue) {
+	# package main;
+	$roothandler= Listener->run(
+		port => 389,
+		log_level => 4
+		);
+}
+
+$pidfile->remove();
 
 1;
