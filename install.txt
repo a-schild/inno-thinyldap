@@ -80,3 +80,17 @@ configure the quickdial object in your pbx with these values:
 Name Attributes cn
 Number Attributes telephoneNumber
 Detail Attributes cn
+
+For Gigaset support, you have to use a special search base 
+with gigaset in the dn like this:
+BaseDN: dc=gigaset,dc=company,dc=ch
+Namefilter: (|(cn=%)(sn=%))
+Numberfilter: (|(telephoneNumber=%)(mobile=%))
+Firstname: person
+Phone private: telephoneNumber
+Phone mobile: mobile
+E-Mail: mail
+Company: company
+Additional attributes: speedDialFixnet,speedDialMobile
+
+

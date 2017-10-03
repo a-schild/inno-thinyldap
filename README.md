@@ -20,6 +20,7 @@ for **update** istructions read the **update.txt** document
 - v1.2 Added support for text search
 - v1.3 Added support to correctly shutdown ldap daemon
 - v1.4 Added support for LDAPS
+- v1.5 Added support for Gigaset N510 and N720 DECT handsets
 
 (C) Aarboard AG, www.aarboard.ch, 2017
 
