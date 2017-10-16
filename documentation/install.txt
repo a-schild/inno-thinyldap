@@ -17,6 +17,7 @@ Prerequisites:
   If not needed you can leave them but set $useDBSearch to 0 to disable it
   
 - In the file ldap-server/db/script.php set the database name and db login credentials
+- In the file ldap-server/db/export.php set the database name and db login credentials
 
 - Upload all files from the ldap-server directory to /var/local/aarldap
 - Upload all files from the ldap-server/db directory to /var/www/innovaphone/apps/phonebook
