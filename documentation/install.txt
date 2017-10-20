@@ -85,6 +85,7 @@ Detail Attributes cn
 For Gigaset support, you have to use a special search base 
 with gigaset in the dn like this:
 BaseDN: dc=gigaset,dc=company,dc=ch
+Display attribute: %cn
 Namefilter: (|(cn=%)(sn=%))
 Numberfilter: (|(telephoneNumber=%)(mobile=%))
 Firstname: person
