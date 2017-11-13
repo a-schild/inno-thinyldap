@@ -21,6 +21,8 @@ There are two components at the moment:
 - v1.3 Added support to correctly shutdown ldap daemon
 - v1.4 Added support for LDAPS
 - v1.5 Added support for Gigaset N510 and N720 DECT handsets
+- v1.6 Remap umlauts for Gigaset N510 and N720 DECT handsets
+       Added text search in gigaset environments
 
 (C) Aarboard AG, www.aarboard.ch, 2017
 

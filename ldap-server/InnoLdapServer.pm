@@ -31,16 +31,17 @@ use Hash::Util qw(lock_keys unlock_keys unlock_value lock_value);
 use fields qw(_userName);
 
 # ---- START CONFIGURATION SECTION ----
-my $ldapUserName= 'inno-ldap';
-my $ldapUserPassword= 'password'; 
-my $useTelSearch= 0; # Set to 0 if you not wish to use tel search
+my $ldapUserName= 'ldap-user-name';
+my $ldapUserPassword= 'ldap-user-password'; 
+my $useTelSearch= 1; # Set to 0 if you not wish to use tel search
 my $useDBSearch= 1;  # set to 0 if you not with to use the internal DB
 my $apiKeyTelsearch = '<request your own at http://tel.search.ch/api/getkey.en.html>'; 
-my $userid = "inno-ldap-db";
-my $password = "password"; 
+my $userid = "<your db user>";
+my $password = "<your db password>"; 
 
 my $speedDialPrefix= "70"; # Add this in front of number to speed dial searches
 my $gigasetInternationalPrefix= "000"; # Replace + sign in front of numbers with these numbers
+my $gigasetRemoveUmlauts= 0; # Remove common umlauts from results to fix gigaset ldap problems
 
 # ---- END CONFIGURATION SECTION ---- 
 # Usually no need to modify things below this point
@@ -49,7 +50,7 @@ my $driver = "mysql";
 my $dsn = "DBI:$driver:database=$database";
 my $resolvURLTelsearch = 'http://tel.search.ch/api/?was=';
 
-my $debug = 0; # Write more logs to logfile, set to 1
+my $debug = 1; # Write more logs to logfile, set to 1
 my $logTrace = 0; # Write even more logs to logfile, set to 1
 my $cacheTimeout= 3600; # Number of seconds to cache a tel.search answer
 
@@ -275,7 +276,20 @@ sub search
 			    my $qNumber= $self->parseSubstring($mySubstrings);
 			    if ($type eq 'cn')
 			    {
-				logwarn("Name0 search not yet implemented for $qNumber");
+				logwarn("Name0 search for $qNumber");
+				@entries= $self->lookupNames($qNumber, $userName, $base, $sizeLimit);
+                                if (scalar(@entries) == 0)
+                                {
+                                    logtrace("No match found");
+                                }
+                                else
+                                {
+                                    logtrace("answer(s) found");
+                                    #push @entries, $result;
+                                    $entryFound= 1;
+                                    last;
+                                }
+
 			    }
 			    else
 			    {
@@ -561,7 +575,7 @@ sub queryMySQLNumber()
             my $dnPart= "cn=mysql_".$addressid.$finalNr;
             my $myDN= $dnPart .",". $base;
             my $foundEntry = Net::LDAP::Entry->new;
-            my $cn= $prefix . $self->makeDisplayName($company, $person);
+            my $cn= $prefix . $self->makeDisplayName($base, $company, $person);
             logwarn("dn: " .$myDN );
             logwarn("cn: " .$cn );
             $foundEntry->dn($myDN);
@@ -594,7 +608,7 @@ sub queryMySQLNumber()
                 $foundEntry->dn($myDN);
                 $foundEntry->add(
 #                                dn => $dnPart,
-                                cn => $self->makeDisplayName($company, $person),
+                                cn => $self->makeDisplayName($base, $company, $person),
                                 );
 		$self->addResultProperties($foundEntry, $base, $phone,'' , $email, $company, $person);
                 $retVal= $foundEntry;
@@ -620,7 +634,7 @@ sub queryMySQLNumber()
                     $foundEntry->dn($myDN);
                     $foundEntry->add(
 #                                    dn => $dnPart,
-                                    cn => $self->makeDisplayName($company, $person)
+                                    cn => $self->makeDisplayName($base, $company, $person)
 				    );
 		    $self->addResultProperties($foundEntry, $base, $mobil,'' , $email, $company, $person);
                     $retVal= $foundEntry;
@@ -669,7 +683,7 @@ sub queryMySQLNames()
         my $dnPart= "cn=mysql_rowid_".$addressid;
         my $myDN= $dnPart .",". $base;
         my $foundEntry = Net::LDAP::Entry->new;
-        my $cn= $self->makeDisplayName( $company , $person);
+        my $cn= $self->makeDisplayName($base,  $company , $person);
         logdebug("dn: " .$myDN );
         logdebug("cn: " .$cn );
         $foundEntry->dn($myDN);
@@ -722,7 +736,7 @@ sub queryMySQLRowID()
         #my $dnPart= "cn=mysql_rowid_".$addressid;
         my $myDN= $base;
         my $foundEntry = Net::LDAP::Entry->new;
-        my $cn= $self->makeDisplayName( $company , $person);
+        my $cn= $self->makeDisplayName( $base, $company , $person);
         logdebug("dn: " .$myDN );
         logdebug("cn: " .$cn );
         $foundEntry->dn($myDN);
@@ -836,7 +850,8 @@ sub parseSubstring()
 
 sub makeDisplayName()
 {
-    my ($self, $company, $person) = @_;
+    my ($self, $base, $company, $person) = @_;
+
 
     my $cn= "";
     if (defined($person) && length($person) > 0)
@@ -859,7 +874,15 @@ sub makeDisplayName()
 	$cn= "Error, no name found";
 	logerr("Company and Name all undefined or empty");
     }
-    return $cn;
+
+    if ($self->isGigaset($base))
+    {
+	return $self->removeUmlauts($cn);
+    }
+    else
+    {
+	return $cn;
+    }
 }
 
 sub addResultProperties()
@@ -867,9 +890,18 @@ sub addResultProperties()
     my ($self, $foundEntry, $base, $phone, $mobil, $email, $company, $person, $speedDialFixnet, $speedDialMobile) = @_;
     if (defined($phone) && length($phone) > 0 ) { $foundEntry->add(telephoneNumber => $self->makeResultNumber($base, $phone)); }
     if (defined($mobil) && length($mobil) > 0 ) { $foundEntry->add(mobile => $self->makeResultNumber($base, $mobil))}; 
-    if (defined($email) && length($email) > 0 ) { $foundEntry->add(mail => $email); }
-    if (defined($company) && length($company) > 0 ) { $foundEntry->add(company => $company); }
-    if (defined($person) && length($person) > 0 ) { $foundEntry->add(person => $person); }
+    if ($self->isGigaset($base))
+    {
+        if (defined($email) && length($email) > 0 ) { $foundEntry->add(mail => $self->removeUmlauts($email)); }
+	if (defined($company) && length($company) > 0 ) { $foundEntry->add(company => $self->removeUmlauts($company)); }
+	if (defined($person) && length($person) > 0 ) { $foundEntry->add(person => $self->removeUmlauts($person)); }
+    }
+    else
+    {
+        if (defined($email) && length($email) > 0 ) { $foundEntry->add(mail => $email); }
+	if (defined($company) && length($company) > 0 ) { $foundEntry->add(company => $company); }
+	if (defined($person) && length($person) > 0 ) { $foundEntry->add(person => $person); }
+    }
     if (defined($speedDialFixnet) && length($speedDialFixnet) > 0 ) { $foundEntry->add(speedDial => $speedDialFixnet); }
     if (defined($speedDialMobile) && length($speedDialMobile) > 0 ) { $foundEntry->add(speedDialMobile => $speedDialMobile); }
 }
@@ -936,6 +968,25 @@ sub begins_with
 }
 
 sub  trim { my $s = shift; $s =~ s/^\s+|\s+$//g; return $s };
+
+
+sub removeUmlauts
+{
+    my ($self, $inString) = @_;
+	if ($gigasetRemoveUmlauts)
+	{
+		my %umlaute = ("ä" => "ae", "Ä" => "Ae", "ü" => "ue", "Ü" => "Ue", "ö" => "oe", "Ö" => "Oe", "ß" => "ss", "é" => "e" );
+		my $umlautkeys = join ("|", keys(%umlaute));
+		$inString =~ s/($umlautkeys)/$umlaute{$1}/g;
+		logdebug("String after map umlauts " . $inString);
+		return $inString;
+	}
+	else
+	{
+		return $inString;
+	}
+}
+
 
 # the rest of the operations will return an "unwilling to perform"
 
