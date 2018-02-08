@@ -23,7 +23,8 @@ There are two components at the moment:
 - v1.5 Added support for Gigaset N510 and N720 DECT handsets
 - v1.6 Remap umlauts for Gigaset N510 and N720 DECT handsets
        Added text search in gigaset environments
+- v1.7 Added better support for Innovaphone DECT handsets
 
-(C) Aarboard AG, www.aarboard.ch, 2017
+(C) Aarboard AG, www.aarboard.ch, 2018
 
 This project is under GNU Public License v3

@@ -94,5 +94,3 @@ Phone mobile: mobile
 E-Mail: mail
 Company: company
 Additional attributes: speedDialFixnet,speedDialMobile
-
-

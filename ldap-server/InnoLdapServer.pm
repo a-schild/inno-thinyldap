@@ -21,6 +21,7 @@ use Net::LDAP::Constant qw(LDAP_SUCCESS);
 use Net::LDAP::Constant qw(LDAP_INVALID_CREDENTIALS);
 use Net::LDAP::Constant qw(LDAP_NO_RESULTS_RETURNED);
 use Net::LDAP::Server;
+use Net::LDAP::Util qw/escape_dn_value/;
 use base 'Net::LDAP::Server';
 use fields qw();
 use Scalar::Util qw(reftype);
@@ -50,7 +51,7 @@ my $driver = "mysql";
 my $dsn = "DBI:$driver:database=$database";
 my $resolvURLTelsearch = 'http://tel.search.ch/api/?was=';
 
-my $debug = 1; # Write more logs to logfile, set to 1
+my $debug = 0; # Write more logs to logfile, set to 1
 my $logTrace = 0; # Write even more logs to logfile, set to 1
 my $cacheTimeout= 3600; # Number of seconds to cache a tel.search answer
 
@@ -101,17 +102,18 @@ sub bind
     my $userPW= $authData->{'simple'};
     if ($userLogin eq $ldapUserName && $userPW eq $ldapUserPassword)
     {
-	$self->{_userName}= $userLogin;
-	return RESULT_OK;
+		$self->{_userName}= $userLogin;
+		return RESULT_OK;
     }
     else
     {
         logwarn("Bind failed for: " . $userLogin);
         logwarn(Dumper($reqData));
-	logwarn(Dumper($userLogin));
+		logwarn(Dumper($userLogin));
         logwarn(Dumper($authData));
-	logwarn(Dumper($userPW));
-	return RESULT_LOGIN_FAILED;
+		logwarn(Dumper($userPW));
+		logwarn("Bind failed for: " . $userLogin);
+		return RESULT_LOGIN_FAILED;
     }
 }
 
@@ -147,90 +149,141 @@ sub search
 	    logdebug("No speed dial query");
             for my $and(@{$myFilter->{'and'}}) 
             {
-                for my $or (@{$and->{'or'}}) 
-                {
-                    for my $myORCondition ($or) 
-                    {
-                        logdebug("Found or condition: " . Dumper($myORCondition));
-                        my $mySubstrings= $myORCondition->{'substrings'};
-                        my $myEquality= $myORCondition->{'equalityMatch'};
+				logdebug("AND1 query loop");
+				if (exists $and->{'or'})
+				{
+					for my $or (@{$and->{'or'}}) 
+					{
+						for my $myORCondition ($or) 
+						{
+							logdebug("Found or condition: " . Dumper($myORCondition));
+							my $mySubstrings= $myORCondition->{'substrings'};
+							my $myEquality= $myORCondition->{'equalityMatch'};
 
-                        if (defined($myEquality))
-                        {
-                            if ($myEquality->{'attributeDesc'} eq "telephoneNumber" )
-                            {
-                                my $qNumber= $myEquality->{'assertionValue'};
-                                $searchExpression= $qNumber;
-                                my $result= $self->lookupNumber($qNumber, $userName, $base);
-                                if (not defined($result))
-                                {
-                                    logdebug("No match found $qNumber");
-                                }
-                                else
-                                {
-                                    logdebug("answer found " . Dumper($result));
-                                    push @entries, $result;
-                                    $entryFound= 1;
-                                    last;
-                                }
-                            }
-			    else
-			    {
-				loginfo("Not query for equality1");
-			    }
-                        }
-                        elsif (defined($mySubstrings))
-                        {
-                                my $mySubstrings= $mySubstrings;
-                                my $type= $mySubstrings->{'type'};
-                                my $qNumber= $self->parseSubstring($mySubstrings);
-                                if ($type eq 'cn')
-                                {
-                                    $searchExpression= $qNumber;
-                                    @entries= $self->lookupNames($searchExpression, $userName, $base, $sizeLimit);
-                                    if (scalar(@entries) == 0)
-                                    {
-                                        logdebug("No match found $searchExpression");
-                                    }
-                                    else
-                                    {
-                                        logdebug("answer found " . Dumper(@entries));
-                                        #push @entries, $result;
-                                        $entryFound= 1;
-                                        last;
-                                    }
-                                }
-                                else
-                                {
-                                    $searchExpression= $qNumber;
-                                    my $result= $self->lookupNumber($qNumber, $userName, $base);
-                                    if (not defined($result))
-                                    {
-                                        logdebug("No match found $qNumber");
-                                    }
-                                    else
-                                    {
-                                        logdebug("answer found " . $result);
-                                        push @entries, $result;
-                                        $entryFound= 1;
-                                        last;
-                                    }
-                                }
-                        }
-                        else
-                        {
-                            logwarn("Unhandled OR condition Part1 : " . Dumper($myORCondition) );
-                        }
-                    }
-                    if ( $entryFound >= 1)
-                    {
-                        last;
-                    }
+							if (defined($myEquality))
+							{
+								if ($myEquality->{'attributeDesc'} eq "telephoneNumber"
+									|| $myEquality->{'attributeDesc'} eq "mobileNumber"
+									|| $myEquality->{'attributeDesc'} eq "mobile")
+								{
+									my $qNumber= $myEquality->{'assertionValue'};
+									$searchExpression= $qNumber;
+									my $result= $self->lookupNumber($qNumber, $userName, $base);
+									if (not defined($result))
+									{
+										logdebug("No match found $qNumber");
+									}
+									else
+									{
+										logdebug("answer found " . Dumper($result));
+										push @entries, $result;
+										$entryFound= 1;
+										last;
+									}
+								}
+					else
+					{
+					loginfo("Not query for equality1");
+					}
+							}
+							elsif (defined($mySubstrings))
+							{
+									my $mySubstrings= $mySubstrings;
+									my $type= $mySubstrings->{'type'};
+									my $qNumber= $self->parseSubstring($mySubstrings);
+									if ($type eq 'cn')
+									{
+										$searchExpression= $qNumber;
+										@entries= $self->lookupNames($searchExpression, $userName, $base, $sizeLimit);
+										if (scalar(@entries) == 0)
+										{
+											logdebug("No match found $searchExpression");
+										}
+										else
+										{
+											logdebug("answer found " . Dumper(@entries));
+											#push @entries, $result;
+											$entryFound= 1;
+											last;
+										}
+									}
+									else
+									{
+										$searchExpression= $qNumber;
+										my $result= $self->lookupNumber($qNumber, $userName, $base);
+										if (not defined($result))
+										{
+											logdebug("No match found $qNumber");
+										}
+										else
+										{
+											logdebug("answer found " . $result);
+											push @entries, $result;
+											$entryFound= 1;
+											last;
+										}
+									}
+							}
+							else
+							{
+								logwarn("Unhandled OR condition Part1 : " . Dumper($myORCondition) );
+							}
+						}
+						if ( $entryFound >= 1)
+						{
+							last;
+						}
+					}
                 }
-                if ( $entryFound >= 1)
-                {
-                    last;
-                }
+				else
+				{
+					# Not in and->or nesting
+					logdebug("Found and condition without nested or: " . Dumper($and));
+					my $mySubstrings= $and->{'substrings'};
+					logdebug("Substrings1: " . Dumper($mySubstrings));
+					for my $mySubstrings2 (@{$mySubstrings->{'substrings'}}) 
+					{
+					logdebug("Substrings2: " . Dumper($mySubstrings2));
+					my $searchExpression= $mySubstrings2->{'initial'};
+					logdebug("myInitial: " . Dumper($searchExpression));
+					my $type= $mySubstrings->{'type'};
+					logdebug("type: " . Dumper($type));
+					if ($type eq 'cn')
+					{
+						@entries= $self->lookupNames($searchExpression, $userName, $base, $sizeLimit);
+						if (scalar(@entries) == 0)
+						{
+						logdebug("No match found $searchExpression");
+						}
+						else
+						{
+						logdebug("answer found " . Dumper(@entries));
+						#push @entries, $result;
+						$entryFound= 1;
+						last;
+						}
+					}
+					else
+					{
+						my $result= $self->lookupNumber($searchExpression, $userName, $base);
+						if (not defined($result))
+						{
+						logdebug("No match found $searchExpression");
+						}
+						else
+						{
+						logdebug("answer found " . $result);
+						push @entries, $result;
+						$entryFound= 1;
+						last;
+						}
+					}
+					}
+				}
+					if ( $entryFound >= 1)
+					{
+						last;
+					}
             }
         }
 	logdebug("After first search");
@@ -242,6 +295,7 @@ sub search
 	    logdebug("2Full filter definition: " . Dumper($myFilter));
             for my $or (@{$myFilter->{'or'}}) 
             {
+				logdebug("OR2 query loop");
                 for my $myORCondition ($or) 
                 {
                     logdebug("Found or condition: " . Dumper($myORCondition));
@@ -487,7 +541,7 @@ sub queryTelSearch()
 	    logdebug("Zip: " .$zip );
 	    logdebug("City: " .$city );
 	    logdebug("Canton: " .$canton );
-	    my $dnPart= "cn=telsch_".$id ;
+	    my $dnPart= "cn=telsch_".escape_dn_value($id) ;
 	    my $myDN= $dnPart.",". $base;
 	    my $foundEntry = Net::LDAP::Entry->new;
 	    my $cn= trim($name . ' ' . $firstname) . ', ' . $zip . ' ' .$city;
@@ -499,7 +553,7 @@ sub queryTelSearch()
 	    logwarn("cn: " .$cn );
 	    $foundEntry->dn($myDN);
 	    $foundEntry->add(
-			    dn => $dnPart,
+#			    dn => $dnPart,
 			    sn => $title,
 			    cn => $cn,
 			    telephoneNumber => [$phone]
@@ -572,7 +626,7 @@ sub queryMySQLNumber()
                $finalNr= $mobil;
                $prefix= "KW M:";
            }
-            my $dnPart= "cn=mysql_".$addressid.$finalNr;
+            my $dnPart= "cn=mysql_".escape_dn_value($addressid.$finalNr);
             my $myDN= $dnPart .",". $base;
             my $foundEntry = Net::LDAP::Entry->new;
             my $cn= $prefix . $self->makeDisplayName($base, $company, $person);
@@ -580,7 +634,7 @@ sub queryMySQLNumber()
             logwarn("cn: " .$cn );
             $foundEntry->dn($myDN);
             $foundEntry->add(
-                            dn => $dnPart,
+#                            dn => $dnPart,
                             cn => $cn);
 	    $self->addResultProperties($foundEntry, $base, $finalNr, $mobil, $email, $company, $person);
             $retVal= $foundEntry;
@@ -601,7 +655,7 @@ sub queryMySQLNumber()
                my ($addressid, $phone, $company, $person, $email) = @row;
                #logdebug("Searchresult SpeeddialPhone: id= $addressid, phone= $phone company= $company person= $person email= $email");
 
-                my $dnPart= "cn=mysql_sdp".$addressid;
+                my $dnPart= "cn=mysql_sdp".escape_dn_value($addressid);
                 my $myDN= $dnPart .",". $base;
                 my $foundEntry = Net::LDAP::Entry->new;
                 logwarn("dn: " .$myDN );
@@ -627,7 +681,7 @@ sub queryMySQLNumber()
                    my ($addressid, $mobil, $company, $person, $email) = @row;
                    #logdebug("Searchresult SpeeddialMobil: id= $addressid, mobil= $mobil company= $company person= $person email= $email");
 
-                    my $dnPart= "cn=mysql_sdp".$addressid;
+                    my $dnPart= "cn=mysql_sdp".escape_dn_value($addressid);
                     my $myDN= $dnPart .",". $base;
                     my $foundEntry = Net::LDAP::Entry->new;
                     logwarn("dn: " .$myDN );
@@ -680,7 +734,7 @@ sub queryMySQLNames()
        my ($addressid, $person, $company, $phone, $mobil, $speeddial_phone, $speeddial_mobile, $email) = @row;
        #logdebug("Searchresult by name: id= $addressid, person= $person, company= $company phone= $phone mobil= $mobil kwphone= $speeddial_phone kwmobile= $speeddial_mobile email= $email");
 
-        my $dnPart= "cn=mysql_rowid_".$addressid;
+        my $dnPart= "cn=mysql_rowid_".escape_dn_value($addressid);
         my $myDN= $dnPart .",". $base;
         my $foundEntry = Net::LDAP::Entry->new;
         my $cn= $self->makeDisplayName($base,  $company , $person);
@@ -688,7 +742,7 @@ sub queryMySQLNames()
         logdebug("cn: " .$cn );
         $foundEntry->dn($myDN);
         $foundEntry->add(
-                        dn => $dnPart,
+#                        dn => $dnPart,
                         cn => $cn);
 	$self->addResultProperties($foundEntry, $base, $phone, $mobil, $email, $company, $person, $speeddial_phone, $speeddial_mobile);
         push @entries, $foundEntry;
@@ -741,7 +795,7 @@ sub queryMySQLRowID()
         logdebug("cn: " .$cn );
         $foundEntry->dn($myDN);
         $foundEntry->add(
-                        dn => $base,
+#                        dn => $base,
                         cn => $cn);
 	$self->addResultProperties($foundEntry, $base, $phone, $mobil, $email, $company, $person, $speeddial_phone, $speeddial_mobile);
         push @entries, $foundEntry;
@@ -945,7 +999,11 @@ sub logwarn {
 }
 
 sub logerr {
-  print STDERR (scalar localtime() . "ERROR: @_\n");
+  print STDERR (scalar localtime() . ":ERROR: @_\n");
+}
+
+sub loginfo {
+  print STDERR (scalar localtime() . ":INFO: @_\n");
 }
 
 sub logdebug {
