@@ -14,6 +14,8 @@ $conn = new mysqli($servername, $username, $password, $db);
 if ($conn->connect_error) {
     die("Verbindung fehlgeschlagen: " . $conn->connect_error);
 }
+$conn->set_charset('utf8');
+
 /** Create a new PHPExcel Object **/
 $objPHPExcel = new PHPExcel();
 $objPHPExcel->getActiveSheet()->setTitle('Entreprise');

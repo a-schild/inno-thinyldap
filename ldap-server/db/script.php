@@ -117,6 +117,8 @@ $db = "phonebook_innovaphone";
                     if ($conn->connect_error) {
                         die("Verbindung fehlgeschlagen: " . $conn->connect_error);
                     }
+					$conn->set_charset('utf8');
+
                     // Pruefen ob der Button "btnInput" geklickt wurde
                     try {
                         if (isset($_POST['btnInput']) && $_POST['btnInput'] == 'Daten importieren') {
@@ -252,6 +254,8 @@ $db = "phonebook_innovaphone";
                 if ($conn->connect_error) {
                     die("Verbindung fehlgeschlagen: " . $conn->connect_error);
                 }
+				$conn->set_charset('utf8');
+
                 $isEven= false;
 
                 $res = $conn->query("select * from address ");

@@ -11,6 +11,9 @@
 #
 package InnoLdapServer;
 
+use utf8;
+use encoding 'utf8';
+
 use strict;
 use warnings;
 use diagnostics;
@@ -599,7 +602,7 @@ sub queryMySQLNumber()
     }
 
     logdebug("MySQL Resolve NR " . $qNumber);
-    my $dbh = DBI->connect($dsn, $userid, $password ) or die $DBI::errstr;
+    my $dbh = DBI->connect($dsn, $userid, $password, { mysql_enable_utf8 => 1 } ) or die $DBI::errstr;
     
     my $sql;
     if (!$self->isSpeedDial($base))
@@ -721,7 +724,7 @@ sub queryMySQLNames()
                                         'default_expires_in' => $cacheTimeout } );
     
     logdebug("MySQL Resolve name " . $qName);
-    my $dbh = DBI->connect($dsn, $userid, $password ) or die $DBI::errstr;
+    my $dbh = DBI->connect($dsn, $userid, $password, { mysql_enable_utf8 => 1 } ) or die $DBI::errstr;
     my $searchExpression= "%".$qName."%";
     my $sql;
     my $sth = $dbh->prepare("SELECT addressid, person, company, phone, mobil, 
@@ -774,7 +777,7 @@ sub queryMySQLRowID()
                                         'default_expires_in' => $cacheTimeout } );
     
     logdebug("MySQL Resolve rowid " . $rowID);
-    my $dbh = DBI->connect($dsn, $userid, $password ) or die $DBI::errstr;
+    my $dbh = DBI->connect($dsn, $userid, $password, { mysql_enable_utf8 => 1 } ) or die $DBI::errstr;
     #my $searchExpression= "%".$qName."%";
     my $sql;
     my $sth = $dbh->prepare("SELECT addressid, person, company, phone, mobil, 

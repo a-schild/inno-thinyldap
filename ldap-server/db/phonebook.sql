@@ -12,7 +12,7 @@
 
 -- Exportiere Datenbank Struktur für phonebook_innovaphone
 DROP DATABASE IF EXISTS `phonebook_innovaphone`;
-CREATE DATABASE IF NOT EXISTS `phonebook_innovaphone` /*!40100 DEFAULT CHARACTER SET latin1 */;
+CREATE DATABASE IF NOT EXISTS `phonebook_innovaphone` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `phonebook_innovaphone`;
 
 
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS `address` (
   `speeddial_mobile` varchar(50) DEFAULT NULL,
   `email` varchar(50) DEFAULT NULL,
   PRIMARY KEY `addressId` (`addressId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Daten Export vom Benutzer nicht ausgewählt
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
