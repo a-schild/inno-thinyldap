@@ -21,12 +21,18 @@ DROP TABLE IF EXISTS `address`;
 CREATE TABLE IF NOT EXISTS `address` (
   `addressId` int(11) NOT NULL AUTO_INCREMENT,
   `company` varchar(50) DEFAULT NULL,
-  `person` varchar(50) DEFAULT NULL,
+  `firstname` varchar(50) DEFAULT NULL,
+  `lastname` varchar(50) DEFAULT NULL,
+  `address` varchar(50) DEFAULT NULL,
+  `zip` varchar(50) DEFAULT NULL,
+  `city` varchar(50) DEFAULT NULL,
+  `country` varchar(50) DEFAULT NULL,
   `phone` varchar(50) DEFAULT NULL,
-  `mobil` varchar(50) DEFAULT NULL,
+  `mobile` varchar(50) DEFAULT NULL,
+  `fax` varchar(50) DEFAULT NULL,
+  `email` varchar(50) DEFAULT NULL,
   `speeddial_phone` varchar(50) DEFAULT NULL,
   `speeddial_mobile` varchar(50) DEFAULT NULL,
-  `email` varchar(50) DEFAULT NULL,
   PRIMARY KEY `addressId` (`addressId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

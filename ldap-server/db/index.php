@@ -11,48 +11,40 @@ $db = "phonebook_innovaphone";
 ?>
 <html>
     <head>
-        <title>Excel Datei importieren</title>
+        <title>inno-ldap phonebook</title>
         <link href="css/style.css" rel="stylesheet">
     </head>
     <body>
-
         <div class="uploadform">
             <form action="" method="post" enctype="multipart/form-data">
                 <div class="uploadform_titel">    
-                    Excel Datei import
+                    Innovaphone simple phonebook
                 </div> 
                 <div class="uploadform_content">
                     <div class="uploadform_left">
-                        <div style="text-align:right;	vertical-align:central;	">
-                            Excel Datei ausw&auml;hlen
+                        <div style="text-align:right; vertical-align:central;">
+                            Select xls or xlsx file
                         </div>
                     </div>
                     <div class="uploadform_right">
-                        <div style="text-align:left;	vertical-align:central;	">
-                            <input type="file" name="file" id="file" multiple style="height:auto"/>
-                            <input type="submit" name="btnInput" value="Daten importieren"/>
+                        <div style="text-align:left; vertical-align:central;">
+                            <input type="file" name="file" id="file" multiple style="height:auto"/><br/>
+                            <input type="submit" name="btnInput" value="Import data"/>
                         </div>
                     </div>
                 </div>
                 <div class="uploadform_content">
                     <div class="uploadform_left">
-                        <div style="text-align:right;	vertical-align:central;	">
- <input type="submit" name="btnInput" value="Bestehende Daten anzeigen"/>
-                        </div>
-                    </div>
-                    <div class="uploadform_left">
-                        <div style="text-align:right;	vertical-align:central;	">
-                            <a href="export.php">Daten als Excel herunterladen</a>
+                        <div style="text-align:right; vertical-align:central;">
+							<input type="submit" name="btnInput" value="Show existing data"/>
                         </div>
                     </div>
                     <div class="uploadform_right">
-                        <div style="text-align:left;	vertical-align:central;	">
-                            
+                        <div style="text-align:left; vertical-align:central;">
+                            <a href="export.php">Download data</a>
                         </div>
-                    </div>
-                    <div class="uploadform_right">
-                        <div style="text-align:left;	vertical-align:central;	">
-                            <a href="testdata.xlsx">Beispieldatei herunterladen</a>
+                        <div style="text-align:right; vertical-align:right;">
+                            <a href="testdata.xlsx">Download sample file</a>
                         </div>
                     </div>
                 </div>
@@ -60,16 +52,22 @@ $db = "phonebook_innovaphone";
                 <div class="uploadform_errordisplay" >
                     <?php
                     $company = "";
-                    $person = "";
+                    $firstname = "";
+                    $lastname = "";
+                    $address = "";
+                    $zip = "";
+                    $city = "";
+                    $country = "";
                     $phone = "";
                     $mobile = "";
+                    $fax = "";
                     $email = "";
                     $speeddial_phone = '';
                     $speeddial_mobile = '';
                     $worksheetError = true;
                     $showData = false;
 
-                    // Formatieren der Telefonnummern
+                    // Format phone numbers
                     function formatting($number) {
                         if ($number != "") {
                             if (substr($number, 0, 2) == "+ ") {
@@ -115,13 +113,13 @@ $db = "phonebook_innovaphone";
 
                     // Pruefen ob die Verbindung zur Datenbank steht
                     if ($conn->connect_error) {
-                        die("Verbindung fehlgeschlagen: " . $conn->connect_error);
+                        die("Database connection failed: " . $conn->connect_error);
                     }
 					$conn->set_charset('utf8');
 
                     // Pruefen ob der Button "btnInput" geklickt wurde
                     try {
-                        if (isset($_POST['btnInput']) && $_POST['btnInput'] == 'Daten importieren') {
+                        if (isset($_POST['btnInput']) && $_POST['btnInput'] == 'Import data') {
                             // Abfragen der Dateiendung
                             $filepath = @$_FILES["file"]["name"];
                             $fileext = pathinfo($filepath, PATHINFO_EXTENSION);
@@ -133,9 +131,11 @@ $db = "phonebook_innovaphone";
                                 $conn->query("TRUNCATE address");
                                 // Erstellen des SQL Querys mit einem Prepare Statement
                                 $stmt = $conn->prepare("insert into address " .
-                                        "(company, person, phone, mobil, email, speeddial_phone, speeddial_mobile) " .
-                                        "values(?,?,?,?,?,?,?)");
-                                $stmt->bind_param("sssssss", $company, $person, $phone, $mobile, $email, $speeddial_phone, $speeddial_mobile);
+                                        "(company, firstname, lastname,address,zip,city,country, phone, mobile, fax, email, speeddial_phone, speeddial_mobile) " .
+                                        "values(?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                                $stmt->bind_param("sssssssssssss", $company, $firstname, $lastname, 
+										$address, $zip, $city, $country, $phone, $mobile, $fax, 
+										$email, $speeddial_phone, $speeddial_mobile);
                                 try {
                                     // Laden der ausgewälten Datei
                                     $objPHPExcel = PHPExcel_IOFactory::load($filename);
@@ -150,19 +150,25 @@ $db = "phonebook_innovaphone";
                                     $highestColumnIndex = PHPExcel_Cell::columnIndexFromString($highestColumn);
                                     $nrColumns = ord($highestColumn) - 64;
                                     // Abfragen des korrekten Worksheets
-                                    if ($worksheetTitle == "Entreprise") {
+                                    if ($worksheetTitle == "Phonebook") {
                                         $worksheetError = false;
                                         $cell = $worksheet->getCellByColumnAndRow(5, 1);
                                         $label = $cell->getValue();
-                                        $hasSpeedDial = ($label == "KurzwahlTel");
-                                        echo $hasSpeedDial ? "Mit Kurzwahl" : "Ohne Kurzwahl";
-                                        $companyCol = 1;
-                                        $personCol = 2;
-                                        $phoneCol = 4;
-                                        $phoneSpeedDialCol = $hasSpeedDial ? 5 : -1;
-                                        $mobileCol = $hasSpeedDial ? 6 : 5;
-                                        $mobileSpeedDialCol = $hasSpeedDial ? 7 : -1;
-                                        $emailCol = $hasSpeedDial ? 9 : 7;
+										$companyCol= 0;
+										$firstnameCol= 1;
+										$lastnameCol= 2;
+										$addressCol= 3;
+										$zipCol= 4;
+										$cityCol= 5;
+										$countryCol= 6;
+										$phoneCol= 7;
+										$phoneSpeedDialCol=8;
+										$mobileCol= 9;
+										$mobileSpeedDialCol=10;
+										$homeCol = 11;
+										$homeSpeedDialCol = 12;
+										$faxCol = 13;
+										$emailCol = 14;
 
                                         // Laden der Zeilen und Spalten des Dokumentes
                                         for ($row = 2; $row <= $highestRow; ++$row) {
@@ -171,61 +177,46 @@ $db = "phonebook_innovaphone";
                                                 $cell = $worksheet->getCellByColumnAndRow($col, $row);
                                                 $val[] = $cell->getValue();
                                             }
-                                            // Speichern der Daten in die dafür vorgesehenen Variabeln
+                                            // Map excel to variables
                                             $company = $val[$companyCol];
-                                            //$company = utf8_decode($company);
-                                            $companies[] = $company;
-                                            $person = $val[$personCol];
-                                            //$person = utf8_decode($person);
-                                            $persons[] = $person;
-                                            $phone = $val[$phoneCol];
-                                            $phone = formatting($phone);
-                                            //$phone = utf8_decode($phone);
-                                            $phones[] = $phone;
-                                            $mobile = $val[$mobileCol];
-                                            $mobile = formatting($mobile);
-                                            //$mobile = utf8_decode($mobile);
-                                            $mobiles[] = $mobile;
-
+                                            $firstname = $val[$firstnameCol];
+                                            $lastname = $val[$lastnameCol];
+                                            $address = $val[$addressCol];
+                                            $zip = $val[$zipCol];
+                                            $city = $val[$cityCol];
+                                            $country = $val[$countryCol];
+                                            $phone = formatting($val[$phoneCol]);
+                                            $mobile = formatting($val[$mobileCol]);
+											$home = formatting($val[$homeCol]);
+                                            $fax = formatting($val[$faxCol]);
                                             $email = $val[$emailCol];
-                                            //$email = utf8_decode($email);
-                                            $emails[] = $email;
-
-                                            if ($hasSpeedDial) {
-                                                $speeddial_phone = $val[$phoneSpeedDialCol];
-                                                $speeddial_mobile = $val[$mobileSpeedDialCol];
-                                            }
-                                            $speeddial_phones[] = $speeddial_phone;
-                                            $speeddial_mobiles[] = $speeddial_mobile;
-                                            //var_dump($speeddial_phone);
-                                            //var_dump($speeddial_mobile);
-
-                                            if (is_numeric($phone) || is_numeric($mobile)) {
-                                                //echo("<p>Zeile $row einfügen</p>");	
-                                                $stmt->execute();
-                                            } else {
-                                                //echo("<p>Zeile $row hat keine Telefonnummern</p>");	
-                                            }
+											$speeddial_phone = $val[$phoneSpeedDialCol];
+											$speeddial_mobile = $val[$mobileSpeedDialCol];
+											$speeddial_home = $val[$homeSpeedDialCol];
+											if (is_numeric($phone) || is_numeric($mobile) || is_numeric($home))
+											{
+												$stmt->execute();
+											}
                                         }
-                                        echo("<p>Das Hochladen der Daten war erfolgreich</p>");
+                                        echo("<p>Import of data suceeded</p>");
                                     }
                                     if ($worksheetError == true) {
-                                        die("<p class='error_message'>Die ausgew&uaml;lte Datei muss ein Worksheet mit dem namen 'Entreprise' haben!</p>");
+                                        die("<p class='error_message'>The import file must have a sheet named 'Phonebook'!</p>");
                                     }
                                 }
                                 $conn->close();
                                 $stmt->close();
                                 $showData = true;
                             } else {
-                                die("<p class='error_message'>Es k&ouml;nnen nur Excel Dateien(.xlsx oder .xls) hochgeladen werden</p>");
+                                die("<p class='error_message'>Only xls and xlsx files can be imported</p>");
                             }
-                        } else if (isset($_POST['btnInput']) && $_POST['btnInput'] == 'Bestehende Daten anzeigen') {
+                        } else if (isset($_POST['btnInput']) && $_POST['btnInput'] == 'Show existing data') {
                             $showData = true;
                         } else if (isset($_POST['btnInput'])) {
-                            echo "Was soll gemacht werden?<br>Aktion '" . $_POST['btnInput'] . "' unbekannt";
+                            echo "Don't know what to do?<br>Action '" . $_POST['btnInput'] . "' unhandled";
                         }
                     } catch (PHPExcel_Exception $e) {
-                        die("<p class='error_message'>Fehler beim laden der Datei: " . $e->getMessage() . "<p>");
+                        die("<p class='error_message'>Error loading file: " . $e->getMessage() . "<p>");
                     }
                     ?>
                 </div>
@@ -235,16 +226,24 @@ $db = "phonebook_innovaphone";
             <table class="uploadedtable">
                 <tr>
                     <td colspan="7" class="uploadedtable_titel">    
-                        Vorhandene Daten
+                        Existing data
                     </td>
                 </tr>
                 <tr>
                     <td class="uploadedtable_header">Company</td>
-                    <td class="uploadedtable_header">Person</td>
+                    <td class="uploadedtable_header">First name</td>
+                    <td class="uploadedtable_header">Last name</td>
+                    <td class="uploadedtable_header">Address</td>
+                    <td class="uploadedtable_header">Zip</td>
+                    <td class="uploadedtable_header">City</td>
+                    <td class="uploadedtable_header">Country</td>
                     <td class="uploadedtable_header">Phone</td>
                     <td class="uploadedtable_header">KW Phone</td>
                     <td class="uploadedtable_header">Mobile</td>
                     <td class="uploadedtable_header">KW Mobile</td>
+                    <td class="uploadedtable_header">Home</td>
+                    <td class="uploadedtable_header">KW Home</td>
+                    <td class="uploadedtable_header">Fax</td>
                     <td class="uploadedtable_header">Email</td>
                 </tr>
                 <?php
@@ -252,7 +251,7 @@ $db = "phonebook_innovaphone";
 
                 // Prüfen ob die Verbindung zur Datenbank steht
                 if ($conn->connect_error) {
-                    die("Verbindung fehlgeschlagen: " . $conn->connect_error);
+                    die("DB connection failed: " . $conn->connect_error);
                 }
 				$conn->set_charset('utf8');
 
@@ -263,23 +262,33 @@ $db = "phonebook_innovaphone";
                     echo "<tr class='uploadedtable_".($isEven ? 'even' : 'odd')."'>";
                     echo "<td>";
                     echo $row['company'];
-                    echo "</td>";
-                    echo "<td>";
-                    echo $row['person'];
-                    echo "</td>";
-                    echo "<td>";
+                    echo "</td><td>";
+                    echo $row['firstname'];
+                    echo "</td><td>";
+                    echo $row['lastname'];
+                    echo "</td><td>";
+                    echo $row['address'];
+                    echo "</td><td>";
+                    echo $row['zip'];
+                    echo "</td><td>";
+                    echo $row['city'];
+                    echo "</td><td>";
+                    echo $row['country'];
+                    echo "</td><td>";
                     echo $row['phone'];
-                    echo "</td>";
-                    echo "<td>";
+                    echo "</td><td>";
                     echo $row['speeddial_phone'];
-                    echo "</td>";
-                    echo "<td>";
-                    echo $row['mobil'];
-                    echo "</td>";
-                    echo "<td>";
+                    echo "</td><td>";
+                    echo $row['mobile'];
+                    echo "</td><td>";
                     echo $row['speeddial_mobile'];
-                    echo "</td>";
-                    echo "<td>";
+                    echo "</td><td>";
+                    echo $row['home'];
+                    echo "</td><td>";
+                    echo $row['speeddial_home'];
+                    echo "</td><td>";
+                    echo $row['fax'];
+                    echo "</td><td>";
                     echo $row['email'];
                     echo "</td>";
                     echo"</tr>";

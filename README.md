@@ -25,6 +25,8 @@ There are two components at the moment:
        Added text search in gigaset environments
 - v1.7 Added better support for Innovaphone DECT handsets
 - v1.8 Better umlaut handling (utf8)
+- v2.0 Added a lot of other fields, like home, zip, city etc.
+       Improved Innovaphone DECT handling
 
 (C) Aarboard AG, www.aarboard.ch, 2018
 

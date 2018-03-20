@@ -70,9 +70,9 @@ On the PBX you have to configure the external LDAP service like this:
 - Username & Password
 - Search base dc=company,dc=ch
 - Mode basic
-Name Attributes cn
-Number Attributes telephoneNumber,mobileNumber
-Detail Attributes cn,mail,company,person,mail
+Name Attributes company,givenName,sn
+Number Attributes telephoneNumber,mobile,homePhone
+Detail Attributes mail,postalAddress,postalCode,l,countryCode
 
 You can also use the quick dial functionality
 For this upload the excel with the speeddial entries filled in
