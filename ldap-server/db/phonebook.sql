@@ -29,10 +29,12 @@ CREATE TABLE IF NOT EXISTS `address` (
   `country` varchar(50) DEFAULT NULL,
   `phone` varchar(50) DEFAULT NULL,
   `mobile` varchar(50) DEFAULT NULL,
+  `home` varchar(50) DEFAULT NULL,
   `fax` varchar(50) DEFAULT NULL,
   `email` varchar(50) DEFAULT NULL,
   `speeddial_phone` varchar(50) DEFAULT NULL,
   `speeddial_mobile` varchar(50) DEFAULT NULL,
+  `speeddial_home` varchar(50) DEFAULT NULL,
   PRIMARY KEY `addressId` (`addressId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

@@ -1,6 +1,6 @@
 This new version adds support for speel dial functionality
 
-Upgrade from 1.x to 2.0 version:
+Upgrade from 1.x to 2.0 and 2.1 version:
 - Please export your data in a excel file and then recreate the database
   with the phonebook.sql script
   Then change the exported data to match the new column layout

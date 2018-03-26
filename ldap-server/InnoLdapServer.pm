@@ -505,7 +505,8 @@ sub search
     }
     else
     {
-	return RESULT_NOT_FOUND;
+		return RESULT_OK;
+		#return RESULT_NOT_FOUND;
     }
 }
 
