@@ -27,6 +27,8 @@ There are two components at the moment:
 - v1.8 Better umlaut handling (utf8)
 - v2.0 Added a lot of other fields, like home, zip, city etc.
        Improved Innovaphone DECT handling
+- v2.1 Added missing homeXXXX DB fields
+       Worked around a IP1200 DECT ldap query handling problem #9
 
 (C) Aarboard AG, www.aarboard.ch, 2018
 
