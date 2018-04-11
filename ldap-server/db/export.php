@@ -2,19 +2,8 @@
 // Definierten der include Dateien
 require 'PHPExcel.php';
 require_once 'PHPExcel/IOFactory.php';
+require_once 'include/dbconn.inc.php';
 
-// Definieren der Variabel
-$servername = "127.0.0.1";
-$username = "inno-ldap-db";
-$password = "<password>";
-$db = "phonebook_innovaphone";
-$conn = new mysqli($servername, $username, $password, $db);
-
-// Prüfen ob die Verbindung zur Datenbank steht
-if ($conn->connect_error) {
-    die("DB connection failed: " . $conn->connect_error);
-}
-$conn->set_charset('utf8');
 
 /** Create a new PHPExcel Object **/
 $objPHPExcel = new PHPExcel();

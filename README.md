@@ -29,7 +29,9 @@ There are two components at the moment:
        Improved Innovaphone DECT handling
 - v2.1 Added missing homeXXXX DB fields
        Worked around a IP1200 DECT ldap query handling problem #9
-
+- v2.2 Fixed problem with home and speeddail_home entries
+	   Moved php db conenctionconfig in separate file
+	 
 (C) Aarboard AG, www.aarboard.ch, 2018
 
 This project is under GNU Public License v3

@@ -2,12 +2,7 @@
 // Definierten der include Dateien
 require 'PHPExcel.php';
 require_once 'PHPExcel/IOFactory.php';
-
-// Definieren der Variabel
-$servername = "127.0.0.1";
-$username = "inno-ldap-db";
-$password = "<password>";
-$db = "phonebook_innovaphone";
+require_once 'include/dbconn.inc.php';
 ?>
 <html>
     <head>
@@ -61,9 +56,11 @@ $db = "phonebook_innovaphone";
                     $phone = "";
                     $mobile = "";
                     $fax = "";
+                    $home= "";
                     $email = "";
                     $speeddial_phone = '';
                     $speeddial_mobile = '';
+                    $speeddial_home= '';
                     $worksheetError = true;
                     $showData = false;
 
@@ -108,9 +105,6 @@ $db = "phonebook_innovaphone";
                         return $number;
                     }
 
-                    // Aufbauen der Verbindung zur Datenbank
-                    $conn = new mysqli($servername, $username, $password, $db);
-
                     // Pruefen ob die Verbindung zur Datenbank steht
                     if ($conn->connect_error) {
                         die("Database connection failed: " . $conn->connect_error);
@@ -131,11 +125,12 @@ $db = "phonebook_innovaphone";
                                 $conn->query("TRUNCATE address");
                                 // Erstellen des SQL Querys mit einem Prepare Statement
                                 $stmt = $conn->prepare("insert into address " .
-                                        "(company, firstname, lastname,address,zip,city,country, phone, mobile, fax, email, speeddial_phone, speeddial_mobile) " .
-                                        "values(?,?,?,?,?,?,?,?,?,?,?,?,?)");
-                                $stmt->bind_param("sssssssssssss", $company, $firstname, $lastname, 
-										$address, $zip, $city, $country, $phone, $mobile, $fax, 
-										$email, $speeddial_phone, $speeddial_mobile);
+                                        "(company, firstname, lastname,address,zip,city,country, phone, mobile, fax, home, email, speeddial_phone, speeddial_mobile, speeddial_home) " .
+                                        "values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                                $stmt->bind_param("sssssssssssssss", $company, $firstname, $lastname, 
+                                                    $address, $zip, $city, $country, $phone, $mobile, $fax, 
+                                                    $home, $email, 
+                                                    $speeddial_phone, $speeddial_mobile, $speeddial_home);
                                 try {
                                     // Laden der ausgewälten Datei
                                     $objPHPExcel = PHPExcel_IOFactory::load($filename);
@@ -204,7 +199,6 @@ $db = "phonebook_innovaphone";
                                         die("<p class='error_message'>The import file must have a sheet named 'Phonebook'!</p>");
                                     }
                                 }
-                                $conn->close();
                                 $stmt->close();
                                 $showData = true;
                             } else {
@@ -247,7 +241,6 @@ $db = "phonebook_innovaphone";
                     <td class="uploadedtable_header">Email</td>
                 </tr>
                 <?php
-                $conn = new mysqli($servername, $username, $password, $db);
 
                 // Prüfen ob die Verbindung zur Datenbank steht
                 if ($conn->connect_error) {
