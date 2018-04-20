@@ -31,6 +31,7 @@ There are two components at the moment:
        Worked around a IP1200 DECT ldap query handling problem #9
 - v2.2 Fixed problem with home and speeddail_home entries
 	   Moved php db conenctionconfig in separate file
+- v2.3 Corrected wrong mapping of fax->lastName in ldap results
 	 
 (C) Aarboard AG, www.aarboard.ch, 2018
 

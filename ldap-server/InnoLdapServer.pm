@@ -1119,7 +1119,7 @@ sub addResultProperties()
 		if (defined($firstname) && length($firstname) > 0 ) { $foundEntry->add(sn => $self->removeUmlauts($firstname)); }
 		if (defined($lastname) && length($lastname) > 0 ) { $foundEntry->add(givenName => $self->removeUmlauts($lastname)); }
 		if (defined($address) && length($address) > 0 ) { $foundEntry->add(postalAddress => $self->removeUmlauts($address)); }
-		if (defined($zip) && length($zip) > 0 ) { $foundEntry->add(postalCode => $self->removeUmlauts($lastname)); }
+		if (defined($zip) && length($zip) > 0 ) { $foundEntry->add(postalCode => $self->removeUmlauts($zip)); }
 		if (defined($city) && length($city) > 0 ) { $foundEntry->add(l => $self->removeUmlauts($city)); }
 		if (defined($country) && length($country) > 0 ) { $foundEntry->add(countryCode => $self->removeUmlauts($country)); }
         if (defined($email) && length($email) > 0 ) { $foundEntry->add(mail => $self->removeUmlauts($email)); }
@@ -1130,7 +1130,7 @@ sub addResultProperties()
 		if (defined($firstname) && length($firstname) > 0 ) { $foundEntry->add(sn => $firstname); }
 		if (defined($lastname) && length($lastname) > 0 ) { $foundEntry->add(givenName => $lastname); }
 		if (defined($address) && length($address) > 0 ) { $foundEntry->add(postalAddress => $address); }
-		if (defined($zip) && length($zip) > 0 ) { $foundEntry->add(postalCode => $lastname); }
+		if (defined($zip) && length($zip) > 0 ) { $foundEntry->add(postalCode => $zip); }
 		if (defined($city) && length($city) > 0 ) { $foundEntry->add(l => $city); }
 		if (defined($country) && length($country) > 0 ) { $foundEntry->add(countryCode => $country); }
         if (defined($email) && length($email) > 0 ) { $foundEntry->add(mail => $email); }
