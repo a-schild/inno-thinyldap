@@ -659,12 +659,12 @@ sub queryMySQLNumber()
 
            my $finalNr= $qNumber;
            my $prefix= "";
-           if (defined($speeddial_phone) && $speeddial_phone == $qNumber)
+           if (defined($speeddial_phone) && $speeddial_phone eq $qNumber)
            {
                $finalNr= $phone;
                $prefix= "KW T:";
            }
-           if (defined($speeddial_mobile) && $speeddial_mobile == $qNumber)
+           if (defined($speeddial_mobile) && $speeddial_mobile eq $qNumber)
            {
                $finalNr= $mobile;
                $prefix= "KW M:";
