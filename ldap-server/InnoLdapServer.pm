@@ -735,9 +735,10 @@ sub queryMySQLNumber()
             my $sth2 = $dbh->prepare("SELECT addressid, 
                                     company, firstname, lastname, 
                                     address, zip, city, country,
-                                phone, mobile, home,
-                                speeddial_phone, speeddial_mobile, speeddial_home,
+									phone, mobile, home,
+									speeddial_phone, speeddial_mobile, speeddial_home,
                                     fax, email
+									FROM address
                                     WHERE  speeddial_mobile = ?");
             $sth2->execute(  $qNumber ) or die $DBI::errstr;
             logmsg("Number of rows found :" . $sth2->rows);
