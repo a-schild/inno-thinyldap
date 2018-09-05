@@ -201,7 +201,7 @@ sub search
 								}
 								else
 								{
-								loginfo("Not query for equality1");
+								    logdebug("Not query for equality1");
 								}
 							}
 							elsif (defined($mySubstrings))
@@ -981,6 +981,21 @@ sub lookupNumber()
 
     if ($useTelSearch == 1 && !$isSpeedDial)
 	{
+		if (index($qNumber, '+') == 0)
+		{
+			# $qNumber= substr($qNumber, 1);
+		}
+		else
+		{
+			if (index($qNumber, "000") ==0)
+			{
+				$qNumber= '+'. substr($qNumber, 3);
+			}
+			elsif (index($qNumber, "00") ==0)
+			{
+				$qNumber= "+41".substr($qNumber, 2);
+			}
+		}
 		if ($entryFound == 0 && index($qNumber, '+41') == 0 && length($qNumber) > 10 && length($qNumber) < 14 )
 		{
 			logdebug("Query tel.search for $qNumber");

@@ -35,6 +35,7 @@ There are two components at the moment:
 - v2.4 Solved searching with non-ascii characters issue #6
        Cleanup logging issue #13
 	   Fixed uninitialized message issue #8
+- v2.5 Telsearch queries now also work when db lookups disabled issue #5
 	 
 (C) Aarboard AG, www.aarboard.ch, 2018
 
