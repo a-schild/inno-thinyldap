@@ -28,6 +28,7 @@ use Net::LDAP::Util qw/escape_dn_value/;
 use base 'Net::LDAP::Server';
 use fields qw();
 use Scalar::Util qw(reftype);
+use Encode qw( decode );
 use LWP::Simple;
 use XML::XPath;
 use Cache::FileCache;
@@ -54,9 +55,14 @@ my $driver = "mysql";
 my $dsn = "DBI:$driver:database=$database";
 my $resolvURLTelsearch = 'http://tel.search.ch/api/?was=';
 
-my $debug = 0; # Write more logs to logfile, set to 1
+my $logError = 1; # Write errors to logfile, set to 0 to disable
+my $logWarn = 1; # Write warnings to logfile, set to 0 to disable
+my $logInfo = 1; # Write infos to logfile, set to 0 to disable
+my $logDebug = 0; # Write more logs to logfile, set to 1
 my $logTrace = 0; # Write even more logs to logfile, set to 1
 my $cacheTimeout= 3600; # Number of seconds to cache a tel.search answer
+my $defaultSizeLimit= 40; # Max number of results to return when the ldap request has no limit set
+my $forceSizeLimit= 0; # When set to > 0 then we never return more than this number of results
 
 # aliases to make the code more readable for non-perl programmers
 sub try(&) { eval {$_[0]->()} }
@@ -111,11 +117,10 @@ sub bind
     else
     {
         logwarn("Bind failed for: " . $userLogin);
-        logwarn(Dumper($reqData));
-		logwarn(Dumper($userLogin));
-        logwarn(Dumper($authData));
-		logwarn(Dumper($userPW));
-		logwarn("Bind failed for: " . $userLogin);
+        logdebug(Dumper($reqData));
+		logdebug(Dumper($userLogin));
+        logtrace(Dumper($authData));
+		logtrace(Dumper($userPW));
 		return RESULT_LOGIN_FAILED;
     }
 }
@@ -128,8 +133,12 @@ sub search
     my $sizeLimit = $reqData->{sizeLimit};
     if ($sizeLimit <= 0)
     {
-        $sizeLimit= 40;
-    }
+        $sizeLimit= $defaultSizeLimit;
+	}
+	if ($forceSizeLimit > 0)
+	{
+		$sizeLimit= $forceSizeLimit < $sizeLimit ? $forceSizeLimit : $sizeLimit;
+	}
     my $userName= $self->{_userName};
     my $cache = new Cache::FileCache( { 'namespace' => $base,
                                         'default_expires_in' => $cacheTimeout } );
@@ -190,51 +199,27 @@ sub search
 										last;
 									}
 								}
-					else
-					{
-					loginfo("Not query for equality1");
-					}
+								else
+								{
+								loginfo("Not query for equality1");
+								}
 							}
 							elsif (defined($mySubstrings))
 							{
-									my $mySubstrings= $mySubstrings;
 									my $type= $mySubstrings->{'type'};
 									my $qNumber= $self->parseSubstring($mySubstrings);
-									if (!(
-                                            $myEquality->{'attributeDesc'} eq "telephoneNumber" 
-                                            || $myEquality->{'attributeDesc'} eq "mobile"
-                                            || $myEquality->{'attributeDesc'} eq "homePhone"
-                                       ))
+									$searchExpression= $qNumber;
+									@entries= $self->lookupNames($searchExpression, $userName, $base, $sizeLimit);
+									if (scalar(@entries) == 0)
 									{
-										$searchExpression= $qNumber;
-										@entries= $self->lookupNames($searchExpression, $userName, $base, $sizeLimit);
-										if (scalar(@entries) == 0)
-										{
-											logdebug("No match found $searchExpression");
-										}
-										else
-										{
-											logdebug("answer found " . Dumper(@entries));
-											#push @entries, $result;
-											$entryFound= 1;
-											last;
-										}
+										logdebug("No match found $searchExpression");
 									}
 									else
 									{
-										$searchExpression= $qNumber;
-										my $result= $self->lookupNumber($qNumber, $userName, $base);
-										if (not defined($result))
-										{
-											logdebug("No match found $qNumber");
-										}
-										else
-										{
-											logdebug("answer found " . $result);
-											push @entries, $result;
-											$entryFound= 1;
-											last;
-										}
+										logdebug("answer found " . Dumper(@entries));
+										#push @entries, $result;
+										$entryFound= 1;
+										last;
 									}
 							}
 							else
@@ -355,36 +340,35 @@ sub search
                                     $type eq 'homePhone' 
                                 ))
 			    {
-				logwarn("Name0 search for $qNumber");
-				@entries= $self->lookupNames($qNumber, $userName, $base, $sizeLimit);
-                                if (scalar(@entries) == 0)
-                                {
-                                    logtrace("No match found");
-                                }
-                                else
-                                {
-                                    logtrace("answer(s) found");
-                                    #push @entries, $result;
-                                    $entryFound= 1;
-                                    last;
-                                }
-
+					logtrace("Name0 search for $qNumber");
+					@entries= $self->lookupNames($qNumber, $userName, $base, $sizeLimit);
+					if (scalar(@entries) == 0)
+					{
+						logtrace("No match found");
+					}
+					else
+					{
+						logtrace("answer(s) found");
+						#push @entries, $result;
+						$entryFound= 1;
+						last;
+					}
 			    }
 			    else
 			    {
-				my $result= $self->lookupNumber($qNumber, $userName, $base);
-				$searchExpression= $qNumber;
-				if (not defined($result))
-				{
-				    logtrace("No match found");
-				}
-				else
-				{
-				    logtrace("answer found " . $result);
-				    push @entries, $result;
-				    $entryFound= 1;
-				    last;
-				}
+					my $result= $self->lookupNumber($qNumber, $userName, $base);
+					$searchExpression= $qNumber;
+					if (not defined($result))
+					{
+						logtrace("No match found");
+					}
+					else
+					{
+						logtrace("answer found " . $result);
+						push @entries, $result;
+						$entryFound= 1;
+						last;
+					}
 			    }
                     }
                     elsif (defined($myPresent))
@@ -456,22 +440,22 @@ sub search
 	{
 	    if (defined($searchExpression))
 	    {
-		logwarn("Found result for $searchExpression : ". Dumper(@entries));
+		logdebug("Found result for $searchExpression : ". Dumper(@entries));
 	    }
 	    else
 	    {
-		logwarn("Found result : ". Dumper(@entries));
+		logdebug("Found result : ". Dumper(@entries));
 	    }
 	}
 	else
 	{
 	    if (defined($searchExpression))
 	    {
-		logwarn("No entries found: ".$searchExpression);
+		logdebug("No entries found: ".$searchExpression);
 	    }
 	    else
 	    {
-		logwarn("No entries found: ".Dumper($myFilter));
+		logdebug("No entries found: ".Dumper($myFilter));
 	    }
 	}
     }
@@ -528,9 +512,9 @@ sub queryTelSearch()
     if (not defined ($response))
     {
         my $fullURL= $resolvURLTelsearch . $qNumber . '&key=' . $apiKeyTelsearch;
-        logwarn("Query tel.search for: ".$fullURL);
+        logdebug("Query tel.search for: ".$fullURL);
 	$response = get $fullURL;
-        logwarn("Storing TelSearch answer in cache: ".$response);
+        logdebug("Storing TelSearch answer in cache: ".$response);
 	$cache->set($qNumber, $response);
     }
     else
@@ -584,8 +568,8 @@ sub queryTelSearch()
 	    {
 		    $cn= $cn . '/' . $canton;
 	    }
-	    logwarn("dn: " .$myDN );
-	    logwarn("cn: " .$cn );
+	    logdebug("dn: " .$myDN );
+	    logtrace("cn: " .$cn );
 	    $foundEntry->dn($myDN);
 	    $foundEntry->add(
 #			    dn => $dnPart,
@@ -597,11 +581,11 @@ sub queryTelSearch()
 	}
     };
     catch {
-	logwarn("Exception TelSearch no match found for: ".$qNumber. " " . $@);
+	logdebug("Exception TelSearch no match found for: ".$qNumber. " " . $@);
     };
     if (not defined($retVal))
     {
-	logwarn("TelSearch not found: ".$qNumber);
+	logdebug("TelSearch not found: ".$qNumber);
     }
     return $retVal;
 }
@@ -615,7 +599,7 @@ sub queryMySQLNumber()
     my $cache = new Cache::FileCache( { 'namespace' => 'telsearch-' . $base,
                                         'default_expires_in' => $cacheTimeout } );
     my $isSpeedDial= $self->isSpeedDial($base);
-    logmsg("base= $base, isSpeedDial= $isSpeedDial");
+    logtrace("base= $base, isSpeedDial= $isSpeedDial");
     
     if (index($qNumber, '+') == 0)
     {
@@ -636,7 +620,6 @@ sub queryMySQLNumber()
     logdebug("MySQL Resolve NR " . $qNumber);
     my $dbh = DBI->connect($dsn, $userid, $password, { mysql_enable_utf8 => 1 } ) or die $DBI::errstr;
     
-    my $sql;
     if (!$self->isSpeedDial($base))
     {
         my $sth = $dbh->prepare("SELECT addressid, 
@@ -648,7 +631,7 @@ sub queryMySQLNumber()
                                 FROM address
                                 WHERE  (phone = ? or mobile=? or home=? or speeddial_phone=? or speeddial_mobile=? or speeddial_home=?)");
         $sth->execute( $qNumber, $qNumber, $qNumber, $qNumber, $qNumber, $qNumber ) or die $DBI::errstr;
-        logmsg("Number of rows found :" . $sth->rows);
+        logtrace("Number of rows found :" . $sth->rows);
         while (my @row = $sth->fetchrow_array()) {
            my ($addressid, 
            $company, $firstname, $lastname, 
@@ -673,8 +656,8 @@ sub queryMySQLNumber()
             my $myDN= $dnPart .",". $base;
             my $foundEntry = Net::LDAP::Entry->new;
             my $cn= $prefix . $self->makeDisplayName($base, $company, $firstname, $lastname);
-            logwarn("dn: " .$myDN );
-            logwarn("cn: " .$cn );
+            logdebug("dn: " .$myDN );
+            logdebug("cn: " .$cn );
             $foundEntry->dn($myDN);
             $foundEntry->add(
                             cn => $cn);
@@ -701,7 +684,7 @@ sub queryMySQLNumber()
                                 FROM address
                                 WHERE speeddial_phone = ?");
         $sth1->execute(  $qNumber ) or die $DBI::errstr;
-        logmsg("Number of rows found :" . $sth1->rows);
+        logtrace("Number of rows found :" . $sth1->rows);
         if ($sth1->rows > 0)
         {
             while (my @row = $sth1->fetchrow_array()) {
@@ -715,7 +698,7 @@ sub queryMySQLNumber()
                 my $dnPart= "cn=mysql_sdp".escape_dn_value($addressid);
                 my $myDN= $dnPart .",". $base;
                 my $foundEntry = Net::LDAP::Entry->new;
-                logwarn("dn: " .$myDN );
+                logtrace("dn: " .$myDN );
                 $foundEntry->dn($myDN);
                 $foundEntry->add(
 #                                dn => $dnPart,
@@ -741,7 +724,7 @@ sub queryMySQLNumber()
 									FROM address
                                     WHERE  speeddial_mobile = ?");
             $sth2->execute(  $qNumber ) or die $DBI::errstr;
-            logmsg("Number of rows found :" . $sth2->rows);
+            logtrace("Number of rows found :" . $sth2->rows);
             if ($sth2->rows > 0)
             {
                 while (my @row = $sth2->fetchrow_array()) {
@@ -756,7 +739,7 @@ sub queryMySQLNumber()
                     my $dnPart= "cn=mysql_sdp".escape_dn_value($addressid);
                     my $myDN= $dnPart .",". $base;
                     my $foundEntry = Net::LDAP::Entry->new;
-                    logwarn("dn: " .$myDN );
+                    logtrace("dn: " .$myDN );
                     $foundEntry->dn($myDN);
                     $foundEntry->add(
 #                                    dn => $dnPart,
@@ -782,7 +765,7 @@ sub queryMySQLNumber()
                                         fax, email
                                         WHERE  speeddial_home= ?");
                 $sth3->execute(  $qNumber ) or die $DBI::errstr;
-                logmsg("Number of rows found :" . $sth3->rows);
+                logtrace("Number of rows found :" . $sth3->rows);
                 if ($sth3->rows > 0)
                 {
                     while (my @row = $sth3->fetchrow_array()) {
@@ -797,7 +780,7 @@ sub queryMySQLNumber()
                         my $dnPart= "cn=mysql_sdp".escape_dn_value($addressid);
                         my $myDN= $dnPart .",". $base;
                         my $foundEntry = Net::LDAP::Entry->new;
-                        logwarn("dn: " .$myDN );
+                        logtrace("dn: " .$myDN );
                         $foundEntry->dn($myDN);
                         $foundEntry->add(
     #                                    dn => $dnPart,
@@ -822,7 +805,7 @@ sub queryMySQLNumber()
     
     if (not defined($retVal))
     {
-	logwarn("SearchMySQL not found: ".$qNumber);
+	logdebug("SearchMySQL not found: ".$qNumber);
     }
     else
     {
@@ -842,9 +825,10 @@ sub queryMySQLNames()
                                         'default_expires_in' => $cacheTimeout } );
     
     logdebug("MySQL Resolve name <" . $qName .">");
+    # Fix encoding problem somewhere along the ldap input parsing
+    my $decoded = eval { decode('UTF-8', $qName, Encode::FB_CROAK) };
     my $dbh = DBI->connect($dsn, $userid, $password, { mysql_enable_utf8 => 1 } ) or die $DBI::errstr;
-    my $searchExpression= $qName."%";
-    my $sql;
+    my $searchExpression= $decoded."%";
     my $sth = $dbh->prepare("SELECT addressid, 
                                 company, firstname, lastname, 
                                 address, zip, city, country,
@@ -856,7 +840,7 @@ sub queryMySQLNames()
                             LIMIT $sizeLimit
                             ");
     $sth->execute(  $searchExpression, $searchExpression, $searchExpression) or die $DBI::errstr;
-    logmsg("Number of rows found :" . $sth->rows);
+    logtrace("Number of rows found :" . $sth->rows);
     while (my @row = $sth->fetchrow_array()) {
         my ($addressid, 
         $company, $firstname, $lastname, 
@@ -893,7 +877,7 @@ sub queryMySQLNames()
     $sth->finish();
     if (scalar(@entries) == 0)
     {
-	logwarn("SearchMySQLNames not found: ".$qName);
+	logdebug("SearchMySQLNames not found: ".$qName);
     }
     else
     {
@@ -914,7 +898,6 @@ sub queryMySQLRowID()
     logdebug("MySQL Resolve rowid " . $rowID);
     my $dbh = DBI->connect($dsn, $userid, $password, { mysql_enable_utf8 => 1 } ) or die $DBI::errstr;
     #my $searchExpression= "%".$qName."%";
-    my $sql;
     my $sth = $dbh->prepare("SELECT addressid, 
                                 company, firstname, lastname, 
                                 address, zip, city, country,
@@ -924,7 +907,7 @@ sub queryMySQLRowID()
                             FROM address
                             WHERE  addressid=?");
     $sth->execute(  $rowID ) or die $DBI::errstr;
-    logmsg("Number of rows found :" . $sth->rows);
+    logdebug("Number of rows found :" . $sth->rows);
     while (my @row = $sth->fetchrow_array()) {
         my ($addressid, 
         $company, $firstname, $lastname, 
@@ -961,7 +944,7 @@ sub queryMySQLRowID()
     $sth->finish();
     if (scalar(@entries) == 0)
     {
-	logwarn("SearchMySQLRowID not found: ".$rowID);
+	logdebug("SearchMySQLRowID not found: ".$rowID);
     }
     else
     {
@@ -978,7 +961,7 @@ sub lookupNumber()
     my $retVal;
     my $entryFound= 0;
     
-    logwarn("Lookup number $qNumber for $userName in context $base");
+    logdebug("Lookup number $qNumber for $userName in context $base");
     
     if ($useDBSearch == 1 )
 	{
@@ -1025,7 +1008,7 @@ sub lookupNames()
     my $entryFound= 0;
     my @entries;
     
-    logwarn("Lookup name $qName for $userName in context $base, maxAnswers <$sizeLimit>");
+    logdebug("Lookup name $qName for $userName in context $base, maxAnswers <$sizeLimit>");
     
     if ($useDBSearch == 1 )
 	{
@@ -1175,24 +1158,26 @@ sub isGigaset
     return $base =~ m/gigaset/;
 }
 
-sub logmsg {
-  print STDERR (scalar localtime() . " @_\n");
+sub logerror {
+  if ($logError) {
+    print STDERR (scalar localtime() . ":ERROR: @_\n");
+  }
 }
 
 sub logwarn {
-  warn scalar localtime() . " @_\n";
-}
-
-sub logerr {
-  print STDERR (scalar localtime() . ":ERROR: @_\n");
+  if ($logInfo) {
+    print STDERR (scalar localtime() . ":WARN: @_\n");
+  }
 }
 
 sub loginfo {
-  print STDERR (scalar localtime() . ":INFO: @_\n");
+  if ($logInfo) {
+    print STDERR (scalar localtime() . ":INFO: @_\n");
+  }
 }
 
 sub logdebug {
-  if ($debug) {
+  if ($logDebug) {
     print STDERR (scalar localtime() . ":DEBUG: @_\n");
   }
 }
@@ -1221,7 +1206,7 @@ sub removeUmlauts
 		my %umlaute = ("ä" => "ae", "Ä" => "Ae", "ü" => "ue", "Ü" => "Ue", "ö" => "oe", "Ö" => "Oe", "ß" => "ss", "é" => "e" );
 		my $umlautkeys = join ("|", keys(%umlaute));
 		$inString =~ s/($umlautkeys)/$umlaute{$1}/g;
-		logdebug("String after map umlauts " . $inString);
+		logtrace("String after map umlauts " . $inString);
 		return $inString;
 	}
 	else

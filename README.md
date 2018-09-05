@@ -32,6 +32,9 @@ There are two components at the moment:
 - v2.2 Fixed problem with home and speeddail_home entries
 	   Moved php db conenctionconfig in separate file
 - v2.3 Corrected wrong mapping of fax->lastName in ldap results
+- v2.4 Solved searching with non-ascii characters issue #6
+       Cleanup logging issue #13
+	   Fixed uninitialized message issue #8
 	 
 (C) Aarboard AG, www.aarboard.ch, 2018
 
