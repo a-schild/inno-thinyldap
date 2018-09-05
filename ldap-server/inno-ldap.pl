@@ -88,6 +88,8 @@ while ($continue) {
 		port => [ 636, "389/tcp" ],
 		proto => "ssl",       # use ssl as the default
         ipv  => "*",          # bind both IPv4 and IPv6 interfaces
+        user => "daemon",
+	group => "daemon",
         SSL_key_file  => "/home/root/ssl_cert/server.pem",
         SSL_cert_file => "/home/root/ssl_cert/server.pem",
 		log_level => 4
