@@ -1,5 +1,8 @@
 This new version adds support for speel dial functionality
 
+Upgrade from 2.2 to 2.6
+- make sure to replace InnoLdapServer.pm and inno-ldap.pl
+
 Upgrade from 2.1 to 2.2:
 - The db connection info for the PHP part is now in a separate file includes/dbconn.inc.php
   No longer needed to modify index.php and export.php
