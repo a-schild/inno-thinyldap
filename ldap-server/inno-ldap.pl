@@ -6,7 +6,7 @@ use warnings;
 
 package Listener;
 use Net::Server;
-use base 'Net::Server::Fork';
+use base 'Net::Server::PreForkSimple';
 use Proc::Daemon;
 use lib '/var/local/aarldap';
 use InnoLdapServer;
@@ -92,6 +92,7 @@ while ($continue) {
 	group => "daemon",
         SSL_key_file  => "/home/root/ssl_cert/server.pem",
         SSL_cert_file => "/home/root/ssl_cert/server.pem",
+		max_servers => 10,
 		log_level => 4
 		);
 }

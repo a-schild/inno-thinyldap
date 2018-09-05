@@ -36,6 +36,9 @@ There are two components at the moment:
        Cleanup logging issue #13
 	   Fixed uninitialized message issue #8
 - v2.5 Telsearch queries now also work when db lookups disabled issue #5
+- v2.6 Drop privileges to daemon issue #2
+       Use prefork for better performance
+
 	 
 (C) Aarboard AG, www.aarboard.ch, 2018
 
