@@ -38,7 +38,8 @@ There are two components at the moment:
 - v2.5 Telsearch queries now also work when db lookups disabled issue #5
 - v2.6 Drop privileges to daemon issue #2
        Use prefork for better performance
-
+- v2.7 Fixed a speed dial problem with mobile and home speeddial numbers
+       service script now forces closing child processes
 	 
 (C) Aarboard AG, www.aarboard.ch, 2018
 

@@ -716,13 +716,13 @@ sub queryMySQLNumber()
         else
         {
             my $sth2 = $dbh->prepare("SELECT addressid, 
-                                    company, firstname, lastname, 
-                                    address, zip, city, country,
-									phone, mobile, home,
-									speeddial_phone, speeddial_mobile, speeddial_home,
-                                    fax, email
-									FROM address
-                                    WHERE  speeddial_mobile = ?");
+                                company, firstname, lastname, 
+                                address, zip, city, country,
+                                phone, mobile, home,
+                                speeddial_phone, speeddial_mobile, speeddial_home,
+                                fax, email
+                                FROM address
+                                WHERE speeddial_mobile = ?");
             $sth2->execute(  $qNumber ) or die $DBI::errstr;
             logtrace("Number of rows found :" . $sth2->rows);
             if ($sth2->rows > 0)
@@ -748,7 +748,7 @@ sub queryMySQLNumber()
 		    $self->addResultProperties($foundEntry, $base, $mobile,
                         $company, $firstname, $lastname, 
                         $address, $zip, $city, $country,
-           $phone, $mobile, $home,
+           $mobile, $phone, $home,
            $speeddial_phone, $speeddial_mobile, $speeddial_home,
                         $fax, $email
                     );
@@ -757,13 +757,14 @@ sub queryMySQLNumber()
             }
             else
             {
-                my $sth3 = $dbh->prepare("SELECT addressid, 
-                                        company, firstname, lastname, 
-                                        address, zip, city, country,
-                                    phone, mobile, home,
-                                    speeddial_phone, speeddial_mobile, speeddial_home,
-                                        fax, email
-                                        WHERE  speeddial_home= ?");
+				my $sth3 = $dbh->prepare("SELECT addressid, 
+									company, firstname, lastname, 
+									address, zip, city, country,
+									phone, mobile, home,
+									speeddial_phone, speeddial_mobile, speeddial_home,
+									fax, email
+									FROM address
+									WHERE speeddial_home = ?");
                 $sth3->execute(  $qNumber ) or die $DBI::errstr;
                 logtrace("Number of rows found :" . $sth3->rows);
                 if ($sth3->rows > 0)
@@ -789,7 +790,7 @@ sub queryMySQLNumber()
                         $self->addResultProperties($foundEntry, $base, $mobile,
                             $company, $firstname, $lastname, 
                             $address, $zip, $city, $country,
-               $phone, $mobile, $home,
+               $home, $phone, $mobile, 
                $speeddial_phone, $speeddial_mobile, $speeddial_home,
                             $fax, $email
                         );
