@@ -2,6 +2,7 @@
 A very thiny LDAP service for Innovaphone PBX
 It is intended to be installed on a LinuxAP
 either running on a IPx11 Gateway or on a VM.
+I will accept patches to get it working on more recent perl versions.
 
 It could also be installed on any other Linux 
 distribution, but this is not covered in the

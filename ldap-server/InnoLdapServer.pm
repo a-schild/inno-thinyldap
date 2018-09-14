@@ -92,12 +92,10 @@ use constant RESULT_NOT_FOUND => {
 sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
-    #warn "\nClass: ". Dumper($class);
-    #warn "\nSelf : ". Dumper($self);
 
-    #unlock_value(%self);
-    #$self->{'_userLogin'}= undef;
-    #lock_value(%self);
+	binmode STDOUT, ":utf8";
+	binmode STDERR, ":utf8";
+
     return $self;
 }
 
