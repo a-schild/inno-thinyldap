@@ -53,8 +53,8 @@ Prerequisites:
 
 - Set PHP rights for DB web gui
   chown www-data:www-data /var/www/innovaphone/apps/phonebook -R
-- Install php5 mysql libraries
-  apt-get install php5-mysql  php-http
+- Install php5 mysql and ldap libraries
+  apt-get install php5-mysql php-http php5-ldap
 - Restart webserver to use new php libraries
   service lighttpd restart
   
