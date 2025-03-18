@@ -2,6 +2,14 @@
 
 This new version adds support for speel dial functionality
 
+## Upgrade to Innovaphone v13 or v14
+- Make sure to modify the settings to include the new metaSearchXXXX attributes
+  in the pbx and ldap query settings
+  Meta Name Attribute metaSearchText
+  Meta Number Attribute metaSearchNumber
+  ![PBX settings](inno-pbx-config.png)
+  
+
 ## Upgrade from 2.2 to 2.6
 - make sure to replace InnoLdapServer.pm and inno-ldap.pl
 
