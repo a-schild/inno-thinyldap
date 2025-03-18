@@ -1,13 +1,15 @@
+# Upgrade instructions
+
 This new version adds support for speel dial functionality
 
-Upgrade from 2.2 to 2.6
+## Upgrade from 2.2 to 2.6
 - make sure to replace InnoLdapServer.pm and inno-ldap.pl
 
-Upgrade from 2.1 to 2.2:
+## Upgrade from 2.1 to 2.2:
 - The db connection info for the PHP part is now in a separate file includes/dbconn.inc.php
   No longer needed to modify index.php and export.php
   
-Upgrade from 1.x to 2.0 and 2.1 version:
+## Upgrade from 1.x to 2.0 and 2.1 version:
 - Please export your data in a excel file and then recreate the database
   with the phonebook.sql script
   Then change the exported data to match the new column layout
@@ -19,15 +21,14 @@ Upgrade from 1.x to 2.0 and 2.1 version:
   Number Attributes: telephoneNumber,mobile,homePhone
   Detail Attributes: mail,postalAddress,postalCode,l,countryCode
 
-Upgrade from 1.7 to 1.8 version:
+## Upgrade from 1.7 to 1.8 version:
 - Make sure your MySQL database is using utf8mb4 encoding otherwise you will see encoding problems
   You might first export the data to excel, recreate the database and import the excel file again
 
-Upgrade from 1.3 to 1.x version:
+## Upgrade from 1.3 to 1.x version:
 - Nothing special, just make sure to copy over all config settings
 
-Upgrade from 1.2 to 1.3 version:
-
+## Upgrade from 1.2 to 1.3 version:
 - Install the perl pid library
   apt-get install libfile-pid-perl
 
@@ -35,7 +36,7 @@ To upgrade place these new files on the LinuxPA
 - InnoLdapServer.pm (Don't forget to change login config)
 - inno-ldap and inno-ldap.pl
   
-Upgrade from initial (1.0) to the 1.1 version:
+## Upgrade from initial (1.0) to the 1.1 version:
 
 To upgrade place these new files on the LinuxPA
 
@@ -67,4 +68,3 @@ On the PBX you have to configure the external LDAP service like this:
 Name Attributes cn
 Number Attributes telephoneNumber
 Detail Attributes cn
-

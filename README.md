@@ -13,8 +13,8 @@ There are two components at the moment:
 2. (optional) a MySQL database with a small PHP GUI where
     you can upload your corporate address book as excel file
 
-- For **installation** read the **install.txt** in documentation
-- For **update** istructions read the **update.txt** in documentation
+- For **installation** read the **[Install.md](documentation/Install.md)** in documentation
+- For **update** instructions read the **[Update.md](documentation/Update.md)** in documentation
 
 - v1.0 Initial public version
 - v1.1 Added support for speed dial numbers
@@ -41,7 +41,8 @@ There are two components at the moment:
        Use prefork for better performance
 - v2.7 Fixed a speed dial problem with mobile and home speeddial numbers
        service script now forces closing child processes
-	 
-(C) Aarboard AG, www.aarboard.ch, 2018
+- v2.8 Modified to work with v13 and v14 innovaphone
+ 	 
+(C) Aarboard AG, www.aarboard.ch, 2025
 
 This project is under GNU Public License v3

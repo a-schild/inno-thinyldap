@@ -1,6 +1,7 @@
-Install instructions:
-Prerequisites:
-- A working LinuxAP
+# Install instructions:
+
+## Prerequisites:
+- A working LinuxAP or other Perl executable platform
 - SSH an SFTP access to the LinuxAP
 - root login to the LinuxAP to install it
 
@@ -72,6 +73,10 @@ On the PBX you have to configure the external LDAP service like this:
 Name Attributes company,givenName,sn
 Number Attributes telephoneNumber,mobile,homePhone
 Detail Attributes mail,postalAddress,postalCode,l,countryCode
+Meta Name Attribute metaSearchText
+Meta Number Attribute metaSearchNumber
+
+![PBX settings](inno-pbx-config.png)
 
 You can also use the quick dial functionality
 For this upload the excel with the speeddial entries filled in
@@ -93,3 +98,5 @@ Phone mobile: mobile
 E-Mail: mail
 Company: company
 Additional attributes: speedDialFixnet,speedDialMobile
+
+![Gigaset settings](gigaset-settings.png)
