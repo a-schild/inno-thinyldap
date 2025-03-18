@@ -14,7 +14,7 @@ There are two components at the moment:
     you can upload your corporate address book as excel file
 
 - For **installation** read the **[Install.md](documentation/Install.md)** in documentation
-- For **update** instructions read the **[Update.md](documentation/Update.md)** in documentation
+- For **update** instructions read the **[Upgrade.md](documentation/Upgrade.md)** in documentation
 
 - v1.0 Initial public version
 - v1.1 Added support for speed dial numbers
